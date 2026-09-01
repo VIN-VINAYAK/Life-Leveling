@@ -3,6 +3,7 @@ import { ThingsList } from '../models/ThingsList.js';
 import { User } from '../models/User.js';
 import { XPEngine } from '../services/xpEngine.js';
 import { syncUserTitle } from '../services/titleService.js';
+import { getAIJSON } from '../services/aiService.js';
 
 const getCurrentMonthKey = (date = new Date()) => {
   const year = date.getFullYear();
@@ -139,34 +140,25 @@ export const getAiInsights = async (req, res) => {
       motivationalMessage: 'You are making steady progress with your finances. Keep building smart habits.'
     };
 
-    let text = '';
+    let insights = fallback;
     try {
-      const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-20240307',
-          max_tokens: 700,
-          messages: [{ role: 'user', content: `Review this monthly expense data: income ${log.monthlyIncome}, expenses ${log.totalExpenses}, savings goal ${log.savingsGoal}. Return a concise analysis with four points. Keep it friendly and under 180 words.` }]
-        })
+      const aiResponse = await getAIJSON({
+        systemPrompt: 'You are a budgeting coach. Return a JSON object with spendingAnalysis, topAreasToCut (array of 3 strings), savingsTip, controlledPlan, motivationalMessage.',
+        userPrompt: `Review this monthly expense data: income ${log.monthlyIncome}, expenses ${log.totalExpenses}, savings goal ${log.savingsGoal}. Provide actionable and encouraging guidance.`,
+        maxTokens: 700
       });
-      const data = await aiResponse.json();
-      text = data?.content?.[0]?.text || '';
-    } catch (error) {
-      text = '';
-    }
 
-    const insights = text ? {
-      spendingAnalysis: text.split('1)')[1]?.split('2)')[0]?.trim() || fallback.spendingAnalysis,
-      topAreasToCut: text.split('2)')[1]?.split('3)')[0]?.split(/\n|,|\./).filter(Boolean).slice(0, 3) || fallback.topAreasToCut,
-      savingsTip: text.split('3)')[1]?.split('4)')[0]?.trim() || fallback.savingsTip,
-      controlledPlan: text.split('4)')[1]?.trim() || fallback.controlledPlan,
-      motivationalMessage: text.split('5)')[1]?.trim() || fallback.motivationalMessage
-    } : fallback;
+      insights = {
+        spendingAnalysis: aiResponse.spendingAnalysis || fallback.spendingAnalysis,
+        topAreasToCut: Array.isArray(aiResponse.topAreasToCut) && aiResponse.topAreasToCut.length ? aiResponse.topAreasToCut.slice(0, 3) : fallback.topAreasToCut,
+        savingsTip: aiResponse.savingsTip || fallback.savingsTip,
+        controlledPlan: aiResponse.controlledPlan || fallback.controlledPlan,
+        motivationalMessage: aiResponse.motivationalMessage || fallback.motivationalMessage
+      };
+    } catch (error) {
+      console.error('Expense AI fallback used:', error.message);
+      insights = fallback;
+    }
 
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: 'User not found' });

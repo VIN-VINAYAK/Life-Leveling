@@ -1,23 +1,42 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 export const XPBar = ({ currentXP, xpToNextLevel, progress }) => {
+  const barProgress = Math.min(100, Math.max(0, Number(progress) || 0));
+
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-lg font-bold text-gray-800">Progress to Next Level</h3>
-        <span className="text-sm font-bold text-gray-600">
-          {Math.round(progress)}%
-        </span>
+    <motion.div
+      className="card-surface p-6 soft-ring"
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-lg font-bold text-slate-800">Progress to Next Level</h3>
+        <motion.span
+          key={Math.round(barProgress)}
+          initial={{ scale: 0.9, opacity: 0.5 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="rounded-full bg-primary-50 px-3 py-1 text-sm font-bold text-primary-700"
+        >
+          {Math.round(barProgress)}%
+        </motion.span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden">
-        <div
-          className="bg-gradient-to-r from-blue-500 to-purple-500 h-full transition-all duration-300"
-          style={{ width: `${progress}%` }}
+      <div className="relative h-6 overflow-hidden rounded-full bg-slate-200">
+        <motion.div
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary-500 via-primary-600 to-accent-500 shadow-soft"
+          animate={{ width: `${barProgress}%` }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        />
+        <motion.div
+          className="absolute inset-y-0 left-0 rounded-full bg-white/20"
+          animate={{ width: `${Math.max(12, barProgress)}%` }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
         />
       </div>
-      <p className="text-sm text-gray-600 mt-3">
+      <p className="mt-3 text-sm font-medium text-slate-600">
         {xpToNextLevel} XP to next level
       </p>
-    </div>
+    </motion.div>
   );
 };

@@ -2,6 +2,7 @@ import { NutritionLog } from '../models/NutritionLog.js';
 import { User } from '../models/User.js';
 import { XPEngine } from '../services/xpEngine.js';
 import { syncUserTitle } from '../services/titleService.js';
+import { getAIJSON } from '../services/aiService.js';
 
 const getStartOfDay = (date = new Date()) => {
   const start = new Date(date);
@@ -116,36 +117,24 @@ export const getAiInsights = async (req, res) => {
       motivationalTip: 'You are building strong habits one meal at a time. Keep it up.'
     };
 
-    let responseText = '';
+    let insights = fallback;
     try {
-      const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-20240307',
-          max_tokens: 600,
-          messages: [{ role: 'user', content: `User's nutrition today: ${JSON.stringify(nutritionData || log?.meals || [])}. Give: 1) Calorie assessment 2) Protein/carb balance feedback 3) 3 food suggestions for tomorrow 4) Motivational message. Be specific and friendly. Keep it under 200 words.` }]
-        })
+      const aiResponse = await getAIJSON({
+        systemPrompt: 'You are a nutrition coach. Return a JSON object with these fields: calorieAssessment, proteinCarbFeedback, suggestions (array of 3 strings), motivationalTip. Use the user data to provide a friendly, specific assessment.',
+        userPrompt: `User's nutrition today: ${JSON.stringify(nutritionData || log?.meals || [])}. Keep the output focused on the user's actual intake and provide realistic guidance.`,
+        maxTokens: 600
       });
 
-      const data = await aiResponse.json();
-      responseText = data?.content?.[0]?.text || '';
+      insights = {
+        calorieAssessment: aiResponse.calorieAssessment || fallback.calorieAssessment,
+        proteinCarbFeedback: aiResponse.proteinCarbFeedback || fallback.proteinCarbFeedback,
+        suggestions: Array.isArray(aiResponse.suggestions) && aiResponse.suggestions.length ? aiResponse.suggestions.slice(0, 3) : fallback.suggestions,
+        motivationalTip: aiResponse.motivationalTip || fallback.motivationalTip
+      };
     } catch (error) {
-      responseText = '';
+      console.error('Nutrition AI fallback used:', error.message);
+      insights = fallback;
     }
-
-    const insights = responseText
-      ? {
-          calorieAssessment: responseText.split('1)')[1]?.split('2)')[0]?.trim() || fallback.calorieAssessment,
-          proteinCarbFeedback: responseText.split('2)')[1]?.split('3)')[0]?.trim() || fallback.proteinCarbFeedback,
-          suggestions: responseText.split('3)')[1]?.split('4)')[0]?.split(/\n|,|\./).filter(Boolean).slice(0, 3) || fallback.suggestions,
-          motivationalTip: responseText.split('4)')[1]?.trim() || fallback.motivationalTip
-        }
-      : fallback;
 
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: 'User not found' });

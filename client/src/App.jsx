@@ -1,4 +1,5 @@
 import React, { Suspense, lazy } from 'react';
+import { motion } from 'framer-motion';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { XPProvider } from './context/XPContext';
@@ -22,14 +23,29 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl text-gray-600">Loading...</p>
+      <div className="page-shell flex items-center justify-center">
+        <div className="card-surface w-full max-w-md p-8 text-center soft-ring">
+          <div className="mx-auto mb-4 h-12 w-12 animate-pulse rounded-full bg-primary-100" />
+          <p className="text-xl font-semibold text-slate-700">Loading your world...</p>
+        </div>
       </div>
     );
   }
 
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
+
+const RouteFade = ({ children }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    transition={{ duration: 0.25, ease: 'easeOut' }}
+    className="w-full"
+  >
+    {children}
+  </motion.div>
+);
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -48,7 +64,9 @@ function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <RouteFade>
+              <Dashboard />
+            </RouteFade>
           </ProtectedRoute>
         }
       />
@@ -56,8 +74,10 @@ function AppRoutes() {
         path="/nutrition"
         element={
           <ProtectedRoute>
-            <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-              <Nutrition />
+            <Suspense fallback={<div className="page-shell flex items-center justify-center"><div className="card-surface w-full max-w-md p-8 text-center"><p className="text-slate-600">Loading nutrition dashboard...</p></div></div>}>
+              <RouteFade>
+                <Nutrition />
+              </RouteFade>
             </Suspense>
           </ProtectedRoute>
         }
@@ -66,8 +86,10 @@ function AppRoutes() {
         path="/fitness"
         element={
           <ProtectedRoute>
-            <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-              <Fitness />
+            <Suspense fallback={<div className="page-shell flex items-center justify-center"><div className="card-surface w-full max-w-md p-8 text-center"><p className="text-slate-600">Loading fitness dashboard...</p></div></div>}>
+              <RouteFade>
+                <Fitness />
+              </RouteFade>
             </Suspense>
           </ProtectedRoute>
         }
@@ -76,8 +98,10 @@ function AppRoutes() {
         path="/expense"
         element={
           <ProtectedRoute>
-            <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-              <Expense />
+            <Suspense fallback={<div className="page-shell flex items-center justify-center"><div className="card-surface w-full max-w-md p-8 text-center"><p className="text-slate-600">Loading expense dashboard...</p></div></div>}>
+              <RouteFade>
+                <Expense />
+              </RouteFade>
             </Suspense>
           </ProtectedRoute>
         }
@@ -86,8 +110,10 @@ function AppRoutes() {
         path="/leaderboard"
         element={
           <ProtectedRoute>
-            <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-              <Leaderboard />
+            <Suspense fallback={<div className="page-shell flex items-center justify-center"><div className="card-surface w-full max-w-md p-8 text-center"><p className="text-slate-600">Loading leaderboard...</p></div></div>}>
+              <RouteFade>
+                <Leaderboard />
+              </RouteFade>
             </Suspense>
           </ProtectedRoute>
         }
@@ -96,8 +122,10 @@ function AppRoutes() {
         path="/summary"
         element={
           <ProtectedRoute>
-            <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
-              <Summary />
+            <Suspense fallback={<div className="page-shell flex items-center justify-center"><div className="card-surface w-full max-w-md p-8 text-center"><p className="text-slate-600">Loading summary...</p></div></div>}>
+              <RouteFade>
+                <Summary />
+              </RouteFade>
             </Suspense>
           </ProtectedRoute>
         }

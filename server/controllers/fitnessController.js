@@ -3,6 +3,7 @@ import { FitnessProfile } from '../models/FitnessProfile.js';
 import { User } from '../models/User.js';
 import { XPEngine } from '../services/xpEngine.js';
 import { syncUserTitle } from '../services/titleService.js';
+import { getAIJSON } from '../services/aiService.js';
 
 const startOfDay = (date = new Date()) => {
   const day = new Date(date);
@@ -142,29 +143,22 @@ export const generateAiWorkoutPlan = async (req, res) => {
 
     let plan = fallbackPlan;
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-20240307',
-          max_tokens: 700,
-          messages: [{ role: 'user', content: `Create a 7-day workout plan for a user with goal ${profile.fitnessGoal}, activity level ${profile.activityLevel}, weight ${profile.weight}kg, height ${profile.height}cm. Keep it concise and actionable.` }]
-        })
+      const aiResponse = await getAIJSON({
+        systemPrompt: 'You are a fitness coach. Respond with a JSON object containing a 7-item plan array. Each item has day, focus, and details. Keep it concise and realistic.',
+        userPrompt: `Create a 7-day workout plan for a user with goal ${profile.fitnessGoal}, activity level ${profile.activityLevel}, weight ${profile.weight}kg, height ${profile.height}cm. Make each plan item actionable and specific.`,
+        maxTokens: 700
       });
 
-      const data = await response.json();
-      const text = data?.content?.[0]?.text || '';
-      if (text) {
-        plan = text.split(/\n/)
-          .filter(Boolean)
-          .slice(0, 7)
-          .map((line, index) => ({ day: `Day ${index + 1}`, focus: line.split(':')[0] || `Focus ${index + 1}`, details: line.split(':').slice(1).join(':') || 'Keep the session simple and consistent.' }));
+      const planItems = Array.isArray(aiResponse.plan) ? aiResponse.plan : [];
+      if (planItems.length >= 7) {
+        plan = planItems.slice(0, 7).map((item, index) => ({
+          day: item.day || `Day ${index + 1}`,
+          focus: item.focus || `Focus ${index + 1}`,
+          details: item.details || 'Keep the session simple and consistent.'
+        }));
       }
     } catch (error) {
+      console.error('Fitness plan AI fallback used:', error.message);
       plan = fallbackPlan;
     }
 
