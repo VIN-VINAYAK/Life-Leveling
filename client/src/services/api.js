@@ -75,7 +75,8 @@ export const nutritionAPI = {
   getToday: () => api.get('/nutrition/today'),
   getHistory: () => api.get('/nutrition/history'),
   logMeal: (data) => api.post('/nutrition/log', data),
-  getAiInsights: (data) => api.post('/nutrition/ai-insights', data)
+  getAiInsights: (data) => api.post('/nutrition/ai-insights', data),
+  analyzeFoodImage: (data) => api.post('/nutrition/analyze-image', data)
 };
 
 // Fitness API

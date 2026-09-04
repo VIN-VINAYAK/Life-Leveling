@@ -14,7 +14,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!!token);
   const [isAuthenticated, setIsAuthenticated] = useState(!!token);
 
   // Check if user is logged in on mount
@@ -22,7 +22,10 @@ export const AuthProvider = ({ children }) => {
     let isActive = true;
 
     const loadUser = async () => {
-      if (!token) return;
+      if (!token) {
+        if (isActive) setLoading(false);
+        return;
+      }
       try {
         const response = await authAPI.getCurrentUser();
         if (isActive) {
@@ -34,6 +37,8 @@ export const AuthProvider = ({ children }) => {
           console.error('Failed to fetch user:', error);
           logout();
         }
+      } finally {
+        if (isActive) setLoading(false);
       }
     };
 
@@ -88,7 +93,8 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed';
+      const message = error.response?.data?.message
+        || (error.request ? 'Unable to reach the server. Make sure the backend is running on port 5000.' : 'Login failed');
       return { success: false, error: message };
     } finally {
       setLoading(false);

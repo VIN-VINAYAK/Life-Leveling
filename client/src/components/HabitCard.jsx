@@ -8,7 +8,7 @@ export const HabitCard = ({ habit, onComplete, onEdit, onDelete }) => {
       <div>
         <h4 className="font-bold text-lg">{habit.title}</h4>
         <p className="text-sm text-gray-500">{habit.category}</p>
-        <p className="mt-2 text-sm">XP: <span className="font-semibold">{habit.xpReward}</span></p>
+        <p className="mt-2 text-sm">XP: <span className="font-semibold">10</span></p>
         <p className="text-sm text-gray-600">Streak: {habit.currentStreak}</p>
       </div>
       <div className="mt-4 flex gap-2">

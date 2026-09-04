@@ -15,7 +15,7 @@ const isSameDay = (d1, d2) => {
 
 export const createHabit = async (req, res) => {
   try {
-    const { title, category, xpReward } = req.body;
+    const { title, category } = req.body;
 
     if (!title) return res.status(400).json({ message: 'Title is required' });
 
@@ -23,7 +23,7 @@ export const createHabit = async (req, res) => {
       userId: req.userId,
       title,
       category: category || 'general',
-      xpReward: xpReward || 5
+      xpReward: 10
     });
 
     await habit.save();
@@ -61,7 +61,7 @@ export const getHabit = async (req, res) => {
 export const updateHabit = async (req, res) => {
   try {
     const { habitId } = req.params;
-    const { title, category, xpReward, active } = req.body;
+    const { title, category, active } = req.body;
 
     const habit = await Habit.findById(habitId);
     if (!habit) return res.status(404).json({ message: 'Habit not found' });
@@ -69,7 +69,7 @@ export const updateHabit = async (req, res) => {
 
     if (title) habit.title = title;
     if (category) habit.category = category;
-    if (xpReward !== undefined) habit.xpReward = xpReward;
+    habit.xpReward = 10;
     if (active !== undefined) habit.active = active;
 
     await habit.save();
@@ -148,8 +148,9 @@ export const completeHabit = async (req, res) => {
 
     // Award XP to user
     const user = await User.findById(req.userId);
-    const xpReward = XPEngine.calculateXPReward(habit.xpReward, 'easy');
+    const xpReward = 10;
     await XPEngine.applyXP(user, xpReward);
+    user.completedHabits = (user.completedHabits || 0) + 1;
     await user.save();
 
     // Check if ALL active habits are completed today; if so, update overall streak

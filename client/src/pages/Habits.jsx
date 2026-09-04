@@ -8,7 +8,7 @@ export const Habits = () => {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ title: '', category: '', xpReward: 5 });
+  const [form, setForm] = useState({ title: '', category: '', xpReward: 10 });
 
   useEffect(() => { loadHabits(); }, []);
 
@@ -25,7 +25,7 @@ export const Habits = () => {
     if (!form.title.trim()) return alert('Title required');
     try {
       await habitsAPI.createHabit(form);
-      setForm({ title: '', category: '', xpReward: 5 });
+      setForm({ title: '', category: '', xpReward: 10 });
       setShowCreate(false);
       await fetchCurrentUser();
       await loadHabits();
@@ -62,7 +62,7 @@ export const Habits = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Title" className="p-2 border rounded" />
                 <input value={form.category} onChange={e=>setForm({...form,category:e.target.value})} placeholder="Category" className="p-2 border rounded" />
-                <input type="number" value={form.xpReward} onChange={e=>setForm({...form,xpReward:parseInt(e.target.value)})} className="p-2 border rounded" />
+                <div className="rounded border border-slate-700 p-2 text-slate-400">Reward: <strong className="text-emerald-300">10 XP</strong></div>
               </div>
               <button className="mt-4 bg-green-600 text-white px-4 py-2 rounded">Create</button>
             </form>

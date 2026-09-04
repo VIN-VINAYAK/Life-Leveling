@@ -52,12 +52,13 @@ export const Login = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="on">
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
             <input
               type="email"
               name="email"
+              autoComplete="email"
               value={formData.email}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -70,6 +71,7 @@ export const Login = () => {
             <input
               type="password"
               name="password"
+              autoComplete="current-password"
               value={formData.password}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -82,7 +84,7 @@ export const Login = () => {
             disabled={loading}
             className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Connecting...' : 'Login'}
           </button>
         </form>
 

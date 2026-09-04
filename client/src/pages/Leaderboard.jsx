@@ -41,7 +41,7 @@ export const Leaderboard = () => {
         {rankData && (
           <div className="rounded-3xl bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white shadow-sm">
             <p className="text-sm uppercase tracking-[0.25em]">Your position</p>
-            <h2 className="mt-2 text-2xl font-semibold">You’re ranked #{rankData.currentUser?.rank} — {rankData.currentUser?.title}</h2>
+            <h2 className="mt-2 text-2xl font-semibold">You’re ranked #{rankData.currentUser?.rank || rankData.rank || '—'} — {rankData.currentUser?.title || 'Novice'}</h2>
             <p className="mt-2 text-sm">Level {rankData.currentUser?.level} • {rankData.currentUser?.xp} XP • Streak {rankData.currentUser?.streak}</p>
           </div>
         )}

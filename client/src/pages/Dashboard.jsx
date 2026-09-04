@@ -1,11 +1,8 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { useXP } from '../context/XPContext';
-import { tasksAPI } from '../services/api';
 import { XPBar } from '../components/XPBar';
-import { TaskCard } from '../components/TaskCard';
 
 const QuickModuleCard = memo(({ title, description, stat, to, accent, onClick }) => (
   <button onClick={onClick} className={`rounded-3xl p-5 text-left shadow-sm transition hover:-translate-y-1 ${accent}`}>
@@ -16,18 +13,9 @@ const QuickModuleCard = memo(({ title, description, stat, to, accent, onClick })
 ));
 
 export const Dashboard = () => {
-  const { user, logout, fetchCurrentUser } = useAuth();
+  const { user, fetchCurrentUser } = useAuth();
   const { userStats, updateStats, getXPToNextLevel, getProgressPercentage } = useXP();
-  const [tasks, setTasks] = useState([]);
-  const [showCreateTask, setShowCreateTask] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [newTask, setNewTask] = useState({
-    title: '',
-    description: '',
-    difficulty: 'medium',
-    category: 'general',
-    xpReward: 10
-  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,70 +42,11 @@ export const Dashboard = () => {
   const loadUserData = async () => {
     try {
       await fetchCurrentUser();
-      await loadTasks();
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadTasks = async () => {
-    try {
-      const response = await tasksAPI.getTasks();
-      setTasks(response.data.tasks);
-    } catch (error) {
-      console.error('Failed to load tasks:', error);
-    }
-  };
-
-  const handleCreateTask = async (e) => {
-    e.preventDefault();
-
-    if (!newTask.title.trim()) {
-      alert('Task title is required');
-      return;
-    }
-
-    try {
-      await tasksAPI.createTask(newTask);
-      setNewTask({
-        title: '',
-        description: '',
-        difficulty: 'medium',
-        category: 'general',
-        xpReward: 10
-      });
-      setShowCreateTask(false);
-      await loadTasks();
-    } catch (error) {
-      console.error('Failed to create task:', error);
-      alert('Failed to create task');
-    }
-  };
-
-  const handleCompleteTask = async (taskId) => {
-    try {
-      const response = await tasksAPI.completeTask(taskId);
-      const { xpAwarded, userStats: newStats } = response.data;
-
-      // Update local state
-      updateStats(newStats);
-      
-      // Refresh user data from server
-      await fetchCurrentUser();
-      await loadTasks();
-
-      alert(`✅ Task completed! +${xpAwarded} XP`);
-    } catch (error) {
-      console.error('Failed to complete task:', error);
-      alert('Failed to complete task');
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
   };
 
   const moduleCards = [
@@ -136,41 +65,21 @@ export const Dashboard = () => {
     );
   }
 
-  const pendingTasks = tasks.filter(t => t.status === 'pending');
-  const completedTasks = tasks.filter(t => t.status === 'completed');
-
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 shadow-lg">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
+      <main className="max-w-6xl mx-auto p-4 md:p-8">
+        <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <h1 className="text-3xl font-bold">Life Leveling</h1>
-            <p className="text-blue-100">Welcome, {user?.username}</p>
-            <p className="text-sm text-blue-50">{user?.title || 'Novice'} • Level {userStats.level}</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-300">Your life dashboard</p>
+            <h1 className="mt-2 text-3xl font-bold text-white">Good evening, {user?.username || 'Player'} <span aria-hidden="true">👋</span></h1>
+            <p className="mt-1 text-sm text-slate-400">{user?.title || 'Novice'} · Keep building your momentum.</p>
           </div>
-          <div className="flex items-center gap-4">
-            <a href="/habits" className="text-white hover:underline">Habits</a>
-            <a href="/achievements" className="text-white hover:underline">Achievements</a>
-            <a href="/nutrition" className="text-white hover:underline">Nutrition</a>
-            <a href="/fitness" className="text-white hover:underline">Fitness</a>
-            <a href="/expense" className="text-white hover:underline">Expense</a>
-            <a href="/leaderboard" className="text-white hover:underline">Leaderboard</a>
-            <a href="/summary" className="text-white hover:underline">Summary</a>
-            <a href="/notifications" className="text-white hover:underline">Notifications</a>
-            <a href="/calendar" className="text-white hover:underline">Calendar</a>
-            <a href="/stats" className="text-white hover:underline">Stats</a>
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-bold transition"
-            >
-              Logout
-            </button>
+          <div className="rounded-2xl border border-violet-400/25 bg-violet-400/10 px-4 py-3 text-right">
+            <p className="text-xs uppercase tracking-wider text-violet-200">Current level</p>
+            <p className="mt-1 text-2xl font-bold text-white">{userStats.level}</p>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-6xl mx-auto p-4">
         {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
@@ -192,11 +101,13 @@ export const Dashboard = () => {
         </div>
 
         {/* XP Progress */}
-        <XPBar
-          currentXP={userStats.xp}
-          xpToNextLevel={getXPToNextLevel(userStats.xp)}
-          progress={getProgressPercentage(userStats.xp)}
-        />
+        <div id="xp">
+          <XPBar
+            currentXP={userStats.xp}
+            xpToNextLevel={getXPToNextLevel(userStats.xp)}
+            progress={getProgressPercentage(userStats.xp)}
+          />
+        </div>
 
         <div className="mt-8 rounded-3xl bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
@@ -227,125 +138,6 @@ export const Dashboard = () => {
           ))}
         </div>
 
-        {/* Tasks Section */}
-        <div className="mt-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Tasks</h2>
-            <button
-              onClick={() => setShowCreateTask(!showCreateTask)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-bold"
-            >
-              {showCreateTask ? 'Cancel' : '+ New Task'}
-            </button>
-          </div>
-
-          {/* Create Task Form */}
-          {showCreateTask && (
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <form onSubmit={handleCreateTask}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-700 font-bold mb-2">Title</label>
-                    <input
-                      type="text"
-                      value={newTask.title}
-                      onChange={(e) => setNewTask({...newTask, title: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                      placeholder="Task title"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 font-bold mb-2">Category</label>
-                    <input
-                      type="text"
-                      value={newTask.category}
-                      onChange={(e) => setNewTask({...newTask, category: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                      placeholder="e.g., Work, Exercise"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-gray-700 font-bold mb-2">Description</label>
-                  <textarea
-                    value={newTask.description}
-                    onChange={(e) => setNewTask({...newTask, description: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    placeholder="Task description (optional)"
-                    rows="3"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="block text-gray-700 font-bold mb-2">Difficulty</label>
-                    <select
-                      value={newTask.difficulty}
-                      onChange={(e) => setNewTask({...newTask, difficulty: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    >
-                      <option value="easy">Easy (1x XP)</option>
-                      <option value="medium">Medium (1.5x XP)</option>
-                      <option value="hard">Hard (2x XP)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 font-bold mb-2">Base XP</label>
-                    <input
-                      type="number"
-                      value={newTask.xpReward}
-                      onChange={(e) => setNewTask({...newTask, xpReward: parseInt(e.target.value)})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                      min="1"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition mt-4"
-                >
-                  Create Task
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* Pending Tasks */}
-          <div className="mb-8">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Pending Tasks ({pendingTasks.length})</h3>
-            {pendingTasks.length === 0 ? (
-              <p className="text-gray-600">No pending tasks. Create one to get started!</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {pendingTasks.map(task => (
-                  <TaskCard
-                    key={task._id}
-                    task={task}
-                    onComplete={() => handleCompleteTask(task._id)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Completed Tasks */}
-          {completedTasks.length > 0 && (
-            <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Completed Tasks ({completedTasks.length})</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {completedTasks.map(task => (
-                  <TaskCard
-                    key={task._id}
-                    task={task}
-                    completed
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
       </main>
     </div>
   );

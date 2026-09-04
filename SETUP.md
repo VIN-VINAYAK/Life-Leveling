@@ -18,6 +18,9 @@ Create `.env` file in the `server` directory:
 ```
 MONGODB_URI=mongodb://localhost:27017/life-leveling
 JWT_SECRET=your_super_secret_jwt_key_change_this
+GROQ_API_KEY=your_groq_api_key
+# Optional: override the vision-capable Groq model used by NutriAI image analysis
+GROQ_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
 PORT=5000
 NODE_ENV=development
 ```

@@ -1,8 +1,10 @@
 import { NutritionLog } from '../models/NutritionLog.js';
+import { FitnessLog } from '../models/FitnessLog.js';
+import { FitnessProfile } from '../models/FitnessProfile.js';
 import { User } from '../models/User.js';
 import { XPEngine } from '../services/xpEngine.js';
 import { syncUserTitle } from '../services/titleService.js';
-import { getAIJSON } from '../services/aiService.js';
+import { getAIJSON, getAIVisionJSON } from '../services/aiService.js';
 
 const getStartOfDay = (date = new Date()) => {
   const start = new Date(date);
@@ -160,5 +162,77 @@ export const getAiInsights = async (req, res) => {
     return res.json({ insights, xpAwarded: 0, userStats: { xp: user.xp, level: user.level, title: user.title } });
   } catch (error) {
     return res.status(500).json({ message: 'Failed to generate AI insights', error: error.message });
+  }
+};
+
+export const analyzeFoodImage = async (req, res) => {
+  try {
+    const { imageDataUrl } = req.body;
+    if (!imageDataUrl || typeof imageDataUrl !== 'string') {
+      return res.status(400).json({ message: 'A food image is required' });
+    }
+
+    const imageMatch = imageDataUrl.match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+    if (!imageMatch) {
+      return res.status(400).json({ message: 'Use a JPG, PNG, or WebP image' });
+    }
+    if (imageDataUrl.length > 11_000_000) {
+      return res.status(413).json({ message: 'Image is too large. Please use an image under 8 MB.' });
+    }
+
+    const [profile, recentWorkouts] = await Promise.all([
+      FitnessProfile.findOne({ userId: req.userId }).lean(),
+      FitnessLog.find({ userId: req.userId }).sort({ date: -1 }).limit(5).lean()
+    ]);
+
+    const workoutSummary = recentWorkouts.flatMap((log) => log.workouts || []).slice(0, 8).map((workout) => ({
+      exercise: workout.exerciseName,
+      durationMinutes: workout.durationMinutes,
+      caloriesBurned: workout.caloriesBurned
+    }));
+
+    const fallback = {
+      foodName: 'Food in uploaded image',
+      confidence: 'Low',
+      servingSize: 'Unable to estimate reliably',
+      nutrition: { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 },
+      vitaminsAndMinerals: [],
+      ingredients: [],
+      allergens: [],
+      healthAssessment: 'The image could not be analyzed. Use a well-lit photo with the whole meal visible.',
+      fitnessFit: 'Please try another image for a fitness-specific assessment.',
+      recommendations: ['Use a clear, well-lit photo', 'Include the full plate and portion', 'Confirm estimates before tracking'],
+      portionAdvice: 'Visual estimates can be inaccurate; verify portions when possible.'
+    };
+
+    let analysis = fallback;
+    try {
+      const aiResponse = await getAIVisionJSON({
+        systemPrompt: 'You are a careful nutrition and fitness coach analyzing one food photo. Identify every visible food, estimate the total portion and nutrition for the entire visible serving, and never invent precision. If the portion or food is unclear, lower confidence and state the assumption. Return JSON with foodName, confidence (High, Medium, or Low), servingSize, nutrition (calories, protein, carbs, fat, fiber, sugar, sodium as numeric values), vitaminsAndMinerals (array of strings), ingredients (array of strings), allergens (array of strings), healthAssessment, fitnessFit, recommendations (array of 3 strings), and portionAdvice. Nutrition numbers must be numbers, not ranges or units.',
+        userPrompt: `First identify the visible dish and its likely ingredients, then estimate nutrition for the full visible portion. Compare it with this user's fitness context: ${JSON.stringify(profile || { fitnessGoal: 'unknown', activityLevel: 'unknown', weight: null, height: null })}. Recent workouts: ${JSON.stringify(workoutSummary)}. Explain whether this food supports the user's goal, whether it is more suitable before or after training, and what to adjust. Do not claim medical certainty.`,
+        imageDataUrl,
+        maxTokens: 1200
+      });
+
+      analysis = {
+        ...fallback,
+        ...aiResponse,
+        nutrition: { ...fallback.nutrition, ...(aiResponse.nutrition || {}) },
+        vitaminsAndMinerals: Array.isArray(aiResponse.vitaminsAndMinerals) ? aiResponse.vitaminsAndMinerals : fallback.vitaminsAndMinerals,
+        ingredients: Array.isArray(aiResponse.ingredients) ? aiResponse.ingredients : fallback.ingredients,
+        allergens: Array.isArray(aiResponse.allergens) ? aiResponse.allergens : fallback.allergens,
+        recommendations: Array.isArray(aiResponse.recommendations) ? aiResponse.recommendations.slice(0, 3) : fallback.recommendations
+      };
+      for (const key of Object.keys(fallback.nutrition)) {
+        const numericValue = Number(analysis.nutrition[key]);
+        analysis.nutrition[key] = Number.isFinite(numericValue) && numericValue >= 0 ? Math.round(numericValue * 10) / 10 : fallback.nutrition[key];
+      }
+    } catch (error) {
+      console.error('Food image AI fallback used:', error.message);
+    }
+
+    return res.json({ analysis, fitnessContext: { profile, recentWorkouts: workoutSummary }, aiAvailable: analysis !== fallback });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to analyze food image', error: error.message });
   }
 };

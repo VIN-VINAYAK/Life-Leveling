@@ -89,13 +89,6 @@ export const getAiMotivation = async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    const lastInsightMonth = user.lastSummaryInsightMonth || null;
-    if (lastInsightMonth === monthKey) {
-      return res.json({ message: 'You already generated a monthly motivation message this month.' });
-    }
-
     const summaryPayload = await buildMonthlySummaryData(req.userId);
     const summary = summaryPayload.summary;
     const fallback = {
@@ -108,7 +101,7 @@ export const getAiMotivation = async (req, res) => {
     try {
       const aiResponse = await getAIJSON({
         systemPrompt: 'You are a supportive life coach. Return a JSON object with message, tips (array of 3 strings), and focusArea.',
-        userPrompt: `Create a concise monthly motivation message based on this summary: ${JSON.stringify(summary.summary)}. Keep it motivating and grounded in the user’s actual progress.`,
+        userPrompt: `Create a concise monthly motivation message based on this summary: ${JSON.stringify(summary)}. Keep it motivating and grounded in the user’s actual progress.`,
         maxTokens: 700
       });
 

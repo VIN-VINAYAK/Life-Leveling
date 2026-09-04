@@ -40,7 +40,11 @@ export const Summary = () => {
   const handleMotivation = async () => {
     try {
       const response = await summaryAPI.getMotivation();
-      setMotivation(response.data.insights);
+      setMotivation(response.data.insights || {
+        message: response.data.message || 'You are building meaningful momentum. Keep going and the results will compound.',
+        tips: ['Focus on one habit at a time', 'Protect your weekly rest', 'Celebrate the small wins'],
+        focusArea: 'Consistency over intensity'
+      });
       toast.success('Motivation generated');
     } catch (error) {
       toast.error('Could not generate motivation');

@@ -8,20 +8,17 @@ import { checkAndUnlockAchievements } from '../services/achievementService.js';
  */
 export const createTask = async (req, res) => {
   try {
-    const { title, description, xpReward, difficulty, category, dueDate } = req.body;
+    const { title, description, difficulty, category, dueDate } = req.body;
 
     if (!title) {
       return res.status(400).json({ message: 'Title is required' });
     }
 
-    // sensible default XP by difficulty
-    const defaultXPByDifficulty = { easy: 5, medium: 10, hard: 20 };
-
     const task = new Task({
       userId: req.userId,
       title,
       description,
-      xpReward: xpReward || defaultXPByDifficulty[difficulty] || 10,
+      xpReward: 10,
       difficulty: difficulty || 'medium',
       category: category || 'general',
       dueDate: dueDate || null
@@ -94,7 +91,7 @@ export const completeTask = async (req, res) => {
     const user = await User.findById(req.userId);
 
     // Calculate XP reward
-    const xpReward = XPEngine.calculateXPReward(task.xpReward, task.difficulty);
+    const xpReward = 10;
 
     // Update streak
     XPEngine.updateStreak(user);

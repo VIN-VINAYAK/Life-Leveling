@@ -48,7 +48,7 @@ export const getUserRank = async (req, res) => {
   try {
     const cacheKey = `rank-${req.userId}`;
     const cached = getCached(cacheKey);
-    if (cached) return res.json({ rank: cached });
+    if (cached) return res.json(cached);
 
     const users = await User.find({}, { password: 0, email: 0 }).sort({ xp: -1, level: -1 }).lean();
     const rankedUsers = users.map((user, index) => ({ ...user, rank: index + 1 }));

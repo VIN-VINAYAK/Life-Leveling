@@ -8,16 +8,16 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eef6ff',
-          100: '#d9ebff',
-          500: '#4f7cff',
-          600: '#325ef5',
-          700: '#2648c7'
+          50: '#f2eaff',
+          100: '#dfcaff',
+          500: '#8b3dff',
+          600: '#7424ed',
+          700: '#b579ff'
         },
         accent: {
-          400: '#8b5cf6',
-          500: '#7c3aed',
-          600: '#6d28d9'
+          400: '#c25cff',
+          500: '#a23cff',
+          600: '#7b25d8'
         }
       },
       boxShadow: {
@@ -29,7 +29,8 @@ export default {
         '4xl': '2rem'
       },
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'sans-serif']
+        sans: ['"DM Sans"', 'sans-serif'],
+        display: ['"Space Grotesk"', 'sans-serif']
       }
     }
   },

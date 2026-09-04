@@ -156,14 +156,20 @@ export const Fitness = () => {
 
           <div className="space-y-6">
             <div className="rounded-3xl bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-slate-900">Weekly activity</h3>
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Weekly activity</h3>
+                  <p className="mt-1 text-xs text-slate-500">Workout duration by day</p>
+                </div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Minutes</span>
+              </div>
               <div className="mt-4 h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip />
+                    <CartesianGrid stroke="#27304e" strokeDasharray="3 3" />
+                    <XAxis dataKey="day" tick={{ fill: '#8f98bb', fontSize: 11 }} axisLine={{ stroke: '#384263' }} tickLine={false} />
+                    <YAxis unit="m" tick={{ fill: '#8f98bb', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip formatter={(value) => [`${value} min`, 'Duration']} contentStyle={{ background: '#151b32', border: '1px solid #384263', borderRadius: 10 }} />
                     <Bar dataKey="minutes" fill="#10b981" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

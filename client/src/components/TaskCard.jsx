@@ -14,12 +14,7 @@ export const TaskCard = memo(({ task, onComplete, completed = false }) => {
     }
   };
 
-  const getDifficultyMultiplier = (difficulty) => {
-    const multipliers = { easy: 1, medium: 1.5, hard: 2 };
-    return multipliers[difficulty] || 1;
-  };
-
-  const xpReward = Math.floor(task.xpReward * getDifficultyMultiplier(task.difficulty));
+  const xpReward = 10;
 
   return (
     <div className={`rounded-lg shadow p-6 ${completed ? 'bg-gray-100 opacity-75' : 'bg-white hover:shadow-lg transition'}`}>

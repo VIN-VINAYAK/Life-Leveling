@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import toast, { Toaster } from 'react-hot-toast';
 import { nutritionAPI } from '../services/api';
+import { FoodImageAnalyzer } from '../components/nutrition/FoodImageAnalyzer';
 
 const initialForm = { foodName: '', calories: '', carbs: '', protein: '', fat: '', quantity: '1' };
 
@@ -86,6 +87,8 @@ export const Nutrition = () => {
           </div>
           <button onClick={() => navigate('/dashboard')} className="rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white">Back to dashboard</button>
         </div>
+
+        <FoodImageAnalyzer />
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-3xl bg-white p-6 shadow-sm">
@@ -179,14 +182,20 @@ export const Nutrition = () => {
             )}
 
             <div className="rounded-3xl bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-slate-900">Last 7 days</h3>
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Last 7 days</h3>
+                  <p className="mt-1 text-xs text-slate-500">Daily calories logged</p>
+                </div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">kcal</span>
+              </div>
               <div className="mt-4 h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
+                    <CartesianGrid stroke="#27304e" strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fill: '#8f98bb', fontSize: 11 }} axisLine={{ stroke: '#384263' }} tickLine={false} />
+                    <YAxis unit=" kcal" tick={{ fill: '#8f98bb', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip formatter={(value) => [`${value} kcal`, 'Calories']} contentStyle={{ background: '#151b32', border: '1px solid #384263', borderRadius: 10 }} />
                     <Bar dataKey="calories" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

@@ -45,6 +45,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    completedHabits: {
+      type: Number,
+      default: 0
+    },
     title: {
       type: String,
       default: 'Novice'

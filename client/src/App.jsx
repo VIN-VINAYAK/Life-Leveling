@@ -11,6 +11,8 @@ import { Achievements } from './pages/Achievements';
 import { Notifications } from './pages/Notifications';
 import { Stats } from './pages/Stats';
 import { Calendar } from './pages/Calendar';
+import { Tasks } from './pages/Tasks';
+import { AppShell } from './components/AppShell';
 
 const Nutrition = lazy(() => import('./pages/Nutrition.jsx').then((module) => ({ default: module.Nutrition })));
 const Fitness = lazy(() => import('./pages/Fitness.jsx').then((module) => ({ default: module.Fitness })));
@@ -32,7 +34,7 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  return isAuthenticated ? <AppShell>{children}</AppShell> : <Navigate to="/login" />;
 };
 
 const RouteFade = ({ children }) => (
@@ -167,6 +169,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Calendar />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tasks"
+        element={
+          <ProtectedRoute>
+            <Tasks />
           </ProtectedRoute>
         }
       />
