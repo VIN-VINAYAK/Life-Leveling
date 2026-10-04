@@ -18,8 +18,13 @@ const habitSchema = new mongoose.Schema(
     },
     xpReward: {
       type: Number,
-      default: 5,
+      default: 10,
       min: 1
+    },
+    difficulty: {
+      type: String,
+      enum: ['easy', 'medium', 'hard'],
+      default: 'medium'
     },
     currentStreak: {
       type: Number,

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ThemeToggle } from '../components/ThemeToggle';
+import { Flame, Swords } from 'lucide-react';
 
 export const Login = () => {
   const [formData, setFormData] = useState({
@@ -41,8 +43,10 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+    <div className="auth-page min-h-screen flex items-center justify-center p-4">
+      <div className="auth-theme-toggle"><ThemeToggle compact /></div>
+      <div className="auth-card w-full max-w-md">
+        <div className="auth-crest" aria-hidden="true"><Flame size={18} /><Swords size={18} /></div>
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">Life Leveling</h1>
         <p className="text-center text-gray-600 mb-8">Welcome back</p>
 

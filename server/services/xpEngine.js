@@ -40,8 +40,8 @@ export class XPEngine {
   static getDifficultyMultiplier(difficulty) {
     const multipliers = {
       easy: 1,
-      medium: 1.5,
-      hard: 2
+      medium: 2,
+      hard: 3
     };
     return multipliers[difficulty] || 1;
   }

@@ -8,16 +8,16 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#f2eaff',
-          100: '#dfcaff',
-          500: '#8b3dff',
-          600: '#7424ed',
-          700: '#b579ff'
+          50: '#f4efe2',
+          100: '#e7d3ad',
+          500: '#a66028',
+          600: '#7f3f26',
+          700: '#bd6434'
         },
         accent: {
-          400: '#c25cff',
-          500: '#a23cff',
-          600: '#7b25d8'
+          400: '#d8a45b',
+          500: '#a66028',
+          600: '#7f3f26'
         }
       },
       boxShadow: {

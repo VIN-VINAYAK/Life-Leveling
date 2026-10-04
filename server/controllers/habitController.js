@@ -15,15 +15,19 @@ const isSameDay = (d1, d2) => {
 
 export const createHabit = async (req, res) => {
   try {
-    const { title, category } = req.body;
+    const { title, category, difficulty } = req.body;
 
     if (!title) return res.status(400).json({ message: 'Title is required' });
+
+    const normalizedDifficulty = difficulty || 'medium';
+    const xpReward = XPEngine.calculateXPReward(10, normalizedDifficulty);
 
     const habit = new Habit({
       userId: req.userId,
       title,
       category: category || 'general',
-      xpReward: 10
+      difficulty: normalizedDifficulty,
+      xpReward
     });
 
     await habit.save();
@@ -61,7 +65,7 @@ export const getHabit = async (req, res) => {
 export const updateHabit = async (req, res) => {
   try {
     const { habitId } = req.params;
-    const { title, category, active } = req.body;
+    const { title, category, difficulty, active } = req.body;
 
     const habit = await Habit.findById(habitId);
     if (!habit) return res.status(404).json({ message: 'Habit not found' });
@@ -69,7 +73,14 @@ export const updateHabit = async (req, res) => {
 
     if (title) habit.title = title;
     if (category) habit.category = category;
-    habit.xpReward = 10;
+    if (difficulty) {
+      habit.difficulty = difficulty;
+      habit.xpReward = XPEngine.calculateXPReward(10, difficulty);
+    }
+    if (!habit.difficulty) {
+      habit.difficulty = 'medium';
+      habit.xpReward = XPEngine.calculateXPReward(10, 'medium');
+    }
     if (active !== undefined) habit.active = active;
 
     await habit.save();
@@ -148,7 +159,8 @@ export const completeHabit = async (req, res) => {
 
     // Award XP to user
     const user = await User.findById(req.userId);
-    const xpReward = 10;
+    const xpReward = XPEngine.calculateXPReward(10, habit.difficulty || 'medium');
+    habit.xpReward = xpReward;
     await XPEngine.applyXP(user, xpReward);
     user.completedHabits = (user.completedHabits || 0) + 1;
     await user.save();

@@ -1,9 +1,10 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ThemeToggle } from './ThemeToggle';
 import {
   BarChart3, Bell, CalendarDays, CheckSquare,
-  Dumbbell, Flag, HeartPulse, Home, LogOut, Medal, Settings, Sparkles, Wallet
+  Dumbbell, Flag, Flame, HeartPulse, Home, LogOut, Medal, Settings, Sparkles, Swords, Wallet
 } from 'lucide-react';
 
 const navigation = [
@@ -34,8 +35,9 @@ export const AppShell = ({ children }) => {
     <div className="app-shell min-h-screen">
       <aside className="app-sidebar">
         <div className="sidebar-brand">
-          <div className="brand-mark"><Sparkles size={20} /></div>
+          <div className="brand-mark"><Flame size={18} /></div>
           <div><strong>LIFE</strong><strong>LEVELLING</strong></div>
+          <div className="sidebar-crest" aria-hidden="true"><Swords size={15} /></div>
         </div>
 
         <div className="sidebar-profile">
@@ -47,6 +49,11 @@ export const AppShell = ({ children }) => {
             <p className="mt-1 text-[10px] text-slate-500">{user?.xp || 0} XP</p>
           </div>
           <button className="sidebar-logout" onClick={handleLogout} title="Log out" aria-label="Log out"><LogOut size={14} /></button>
+        </div>
+
+        <div className="sidebar-tools">
+          <span>APPEARANCE</span>
+          <ThemeToggle />
         </div>
 
         <nav className="sidebar-nav" aria-label="Main navigation">

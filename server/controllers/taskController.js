@@ -14,12 +14,15 @@ export const createTask = async (req, res) => {
       return res.status(400).json({ message: 'Title is required' });
     }
 
+    const normalizedDifficulty = difficulty || 'medium';
+    const xpReward = XPEngine.calculateXPReward(10, normalizedDifficulty);
+
     const task = new Task({
       userId: req.userId,
       title,
       description,
-      xpReward: 10,
-      difficulty: difficulty || 'medium',
+      xpReward,
+      difficulty: normalizedDifficulty,
       category: category || 'general',
       dueDate: dueDate || null
     });
@@ -90,8 +93,9 @@ export const completeTask = async (req, res) => {
     // Get user
     const user = await User.findById(req.userId);
 
-    // Calculate XP reward
-    const xpReward = 10;
+    // Calculate XP reward based on task difficulty
+    const xpReward = XPEngine.calculateXPReward(10, task.difficulty || 'medium');
+    task.xpReward = xpReward;
 
     // Update streak
     XPEngine.updateStreak(user);
@@ -173,7 +177,10 @@ export const updateTask = async (req, res) => {
 
     if (title) task.title = title;
     if (description !== undefined) task.description = description;
-    if (difficulty) task.difficulty = difficulty;
+    if (difficulty) {
+      task.difficulty = difficulty;
+      task.xpReward = XPEngine.calculateXPReward(10, difficulty);
+    }
     if (category) task.category = category;
     if (dueDate !== undefined) task.dueDate = dueDate;
 

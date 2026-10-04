@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { motion } from 'framer-motion';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -13,6 +13,8 @@ import { Stats } from './pages/Stats';
 import { Calendar } from './pages/Calendar';
 import { Tasks } from './pages/Tasks';
 import { AppShell } from './components/AppShell';
+import SplashScreen from './components/SplashScreen';
+import { ThemeProvider } from './context/ThemeContext';
 
 const Nutrition = lazy(() => import('./pages/Nutrition.jsx').then((module) => ({ default: module.Nutrition })));
 const Fitness = lazy(() => import('./pages/Fitness.jsx').then((module) => ({ default: module.Fitness })));
@@ -186,14 +188,22 @@ function AppRoutes() {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <XPProvider>
-          <AppRoutes />
-        </XPProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <XPProvider>
+            <AppRoutes />
+          </XPProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
