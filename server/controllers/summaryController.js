@@ -91,7 +91,12 @@ export const getAiMotivation = async (req, res) => {
 
     const summaryPayload = await buildMonthlySummaryData(req.userId);
     const summary = summaryPayload.summary;
-    const fallback = {
+    const responseLanguage = user.language === 'hi' ? 'Hindi' : 'English';
+    const fallback = responseLanguage === 'Hindi' ? {
+      message: 'आप निरंतर प्रगति कर रहे हैं। चलते रहें और आपकी मेहनत के परिणाम दिखेंगे।',
+      tips: ['एक समय में एक आदत पर ध्यान दें', 'साप्ताहिक आराम का समय रखें', 'छोटी सफलताओं का जश्न मनाएँ'],
+      focusArea: 'तीव्रता से अधिक निरंतरता'
+    } : {
       message: 'You are building meaningful momentum. Keep going and the results will compound.',
       tips: ['Focus on one habit at a time', 'Protect your weekly rest', 'Celebrate the small wins'],
       focusArea: 'Consistency over intensity'
@@ -100,7 +105,7 @@ export const getAiMotivation = async (req, res) => {
     let insights = fallback;
     try {
       const aiResponse = await getAIJSON({
-        systemPrompt: 'You are a supportive life coach. Return a JSON object with message, tips (array of 3 strings), and focusArea.',
+        systemPrompt: `You are a supportive life coach. Return a JSON object with message, tips (array of 3 strings), and focusArea. Write all values in ${responseLanguage}; keep JSON keys in English.`,
         userPrompt: `Create a concise monthly motivation message based on this summary: ${JSON.stringify(summary)}. Keep it motivating and grounded in the user’s actual progress.`,
         maxTokens: 700
       });

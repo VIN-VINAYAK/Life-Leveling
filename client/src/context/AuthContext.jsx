@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { authAPI } from '../services/api';
+import { useLanguage } from './LanguageContext';
 
 const AuthContext = createContext();
 
@@ -12,6 +13,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  const { setLanguage } = useLanguage();
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(!!token);
@@ -30,6 +32,7 @@ export const AuthProvider = ({ children }) => {
         const response = await authAPI.getCurrentUser();
         if (isActive) {
           setUser(response.data.user);
+          setLanguage(response.data.user.language || 'en');
           setIsAuthenticated(true);
         }
       } catch (error) {
@@ -53,6 +56,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.getCurrentUser();
       setUser(response.data.user);
+      setLanguage(response.data.user.language || 'en');
       setIsAuthenticated(true);
     } catch (error) {
       console.error('Failed to fetch user:', error);
@@ -69,6 +73,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(userData);
+      setLanguage(userData.language || 'en');
       setIsAuthenticated(true);
       
       return { success: true };
@@ -89,6 +94,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(userData);
+      setLanguage(userData.language || 'en');
       setIsAuthenticated(true);
       
       return { success: true };

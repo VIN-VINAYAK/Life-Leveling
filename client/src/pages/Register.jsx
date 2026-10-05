@@ -3,8 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { Flame, Swords } from 'lucide-react';
+import { Card3D } from '../components/ui/Card3D';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Register = () => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -30,17 +33,17 @@ export const Register = () => {
 
     // Validation
     if (!formData.username || !formData.email || !formData.password) {
-      setError('All fields are required');
+      setError(t('All fields are required'));
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('Passwords do not match'));
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('Password must be at least 6 characters'));
       return;
     }
 
@@ -50,7 +53,7 @@ export const Register = () => {
     if (result.success) {
       navigate('/dashboard');
     } else {
-      setError(result.error);
+      setError(t(result.error));
     }
     setLoading(false);
   };
@@ -58,10 +61,10 @@ export const Register = () => {
   return (
     <div className="auth-page min-h-screen flex items-center justify-center p-4">
       <div className="auth-theme-toggle"><ThemeToggle compact /></div>
-      <div className="auth-card w-full max-w-md">
+      <Card3D className="auth-card w-full max-w-md">
         <div className="auth-crest" aria-hidden="true"><Flame size={18} /><Swords size={18} /></div>
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">Life Leveling</h1>
-        <p className="text-center text-gray-600 mb-8">Create your account</p>
+        <p className="text-center text-gray-600 mb-8">{t('Create your account')}</p>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
@@ -71,50 +74,50 @@ export const Register = () => {
 
         <form onSubmit={handleSubmit} autoComplete="on">
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Username</label>
+            <label className="block text-gray-700 text-sm font-bold mb-2">{t('Username')}</label>
             <input
               type="text"
               name="username"
               value={formData.username}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-              placeholder="Choose a username"
+              placeholder={t('Choose a username')}
             />
           </div>
 
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
+            <label className="block text-gray-700 text-sm font-bold mb-2">{t('Email')}</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-              placeholder="your@email.com"
+              placeholder={t('your@email.com')}
             />
           </div>
 
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
+            <label className="block text-gray-700 text-sm font-bold mb-2">{t('Password')}</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-              placeholder="••••••"
+              placeholder={t('••••••')}
             />
           </div>
 
           <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
+            <label className="block text-gray-700 text-sm font-bold mb-2">{t('Confirm Password')}</label>
             <input
               type="password"
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-              placeholder="••••••"
+              placeholder={t('••••••')}
             />
           </div>
 
@@ -123,17 +126,17 @@ export const Register = () => {
             disabled={loading}
             className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
           >
-            {loading ? 'Creating account...' : 'Register'}
+            {loading ? t('Creating account...') : t('Register')}
           </button>
         </form>
 
         <p className="text-center text-gray-600 mt-6">
-          Already have an account?{' '}
+          {t('Already have an account?')}{' '}
           <Link to="/login" className="text-blue-600 hover:underline font-bold">
-            Login
+            {t('Login')}
           </Link>
         </p>
-      </div>
+      </Card3D>
     </div>
   );
 };

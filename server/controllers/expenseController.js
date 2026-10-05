@@ -4,6 +4,7 @@ import { User } from '../models/User.js';
 import { XPEngine } from '../services/xpEngine.js';
 import { syncUserTitle } from '../services/titleService.js';
 import { getAIJSON } from '../services/aiService.js';
+import { getUserResponseLanguage } from '../services/languageService.js';
 
 const getCurrentMonthKey = (date = new Date()) => {
   const year = date.getFullYear();
@@ -132,7 +133,14 @@ export const markThingPurchased = async (req, res) => {
 export const getAiInsights = async (req, res) => {
   try {
     const log = await getCurrentMonthLog(req.userId);
-    const fallback = {
+    const responseLanguage = await getUserResponseLanguage(req.userId);
+    const fallback = responseLanguage === 'Hindi' ? {
+      spendingAnalysis: 'इस महीने आपका खर्च नियंत्रण में है। बचत बनाए रखने के लिए गैर-ज़रूरी खर्चों पर ध्यान दें।',
+      topAreasToCut: ['बाहर खाना', 'आवेग में खरीदारी', 'अनावश्यक सदस्यताएँ'],
+      savingsTip: 'बचत की आदत बनाए रखने के लिए हर वेतन-दिवस पर थोड़ी राशि अलग रखें।',
+      controlledPlan: 'साप्ताहिक खर्च सीमा तय करें और महीने के अंत तक गैर-ज़रूरी खरीदारी से बचें।',
+      motivationalMessage: 'आप अपने वित्तीय लक्ष्यों की ओर लगातार बढ़ रहे हैं। अच्छी आदतें बनाए रखें।'
+    } : {
       spendingAnalysis: 'Your spending is under control this month. Keep an eye on discretionary categories to preserve savings.',
       topAreasToCut: ['Dining out', 'Impulse shopping', 'Unnecessary subscriptions'],
       savingsTip: 'Transfer a small amount to savings each payday to keep momentum going.',
@@ -143,7 +151,7 @@ export const getAiInsights = async (req, res) => {
     let insights = fallback;
     try {
       const aiResponse = await getAIJSON({
-        systemPrompt: 'You are a budgeting coach. Return a JSON object with spendingAnalysis, topAreasToCut (array of 3 strings), savingsTip, controlledPlan, motivationalMessage.',
+        systemPrompt: `You are a budgeting coach. Return a JSON object with spendingAnalysis, topAreasToCut (array of 3 strings), savingsTip, controlledPlan, motivationalMessage. Write all values in ${responseLanguage}; keep JSON keys in English.`,
         userPrompt: `Review this monthly expense data: income ${log.monthlyIncome}, expenses ${log.totalExpenses}, savings goal ${log.savingsGoal}. Provide actionable and encouraging guidance.`,
         maxTokens: 700
       });

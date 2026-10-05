@@ -15,6 +15,7 @@ import fitnessRoutes from './routes/fitnessRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import leaderboardRoutes from './routes/leaderboardRoutes.js';
 import summaryRoutes from './routes/summaryRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
 
 dotenv.config();
 
@@ -29,7 +30,7 @@ const corsOptions = {
 };
 
 // Middleware
-app.use(express.json({ limit: '12mb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(generalLimiter);
@@ -54,5 +55,6 @@ app.use('/api/fitness', fitnessRoutes);
 app.use('/api/expense', expenseRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/summary', summaryRoutes);
+app.use('/api/settings', settingsRoutes);
 
 export default app;

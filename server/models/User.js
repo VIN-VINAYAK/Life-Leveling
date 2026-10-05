@@ -16,6 +16,11 @@ const userSchema = new mongoose.Schema(
       unique: true,
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     },
+    language: {
+      type: String,
+      enum: ['en', 'hi'],
+      default: 'en'
+    },
     password: {
       type: String,
       required: true,

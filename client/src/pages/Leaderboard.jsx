@@ -2,22 +2,34 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { leaderboardAPI } from '../services/api';
+import { motion } from 'framer-motion';
+import { Skeleton } from '../components/ui/Skeleton';
+import { GlassCard } from '../components/ui/GlassCard';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Leaderboard = () => {
   const navigate = useNavigate();
+  const { language, t } = useLanguage();
   const [leaderboard, setLeaderboard] = useState([]);
   const [rankData, setRankData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const podium = leaderboard.slice(0, 3);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [globalRes, rankRes] = await Promise.all([leaderboardAPI.getGlobal(), leaderboardAPI.getRank()]);
-        setLeaderboard(globalRes.data.leaderboard || []);
-        setRankData(rankRes.data);
+        const globalRes = await leaderboardAPI.getGlobal();
+        const rankedUsers = globalRes.data.leaderboard || [];
+        const currentIndex = rankedUsers.findIndex((entry) => entry.isCurrentUser);
+        setLeaderboard(rankedUsers);
+        setRankData(currentIndex < 0 ? null : {
+          currentUser: rankedUsers[currentIndex],
+          nearbyUsers: rankedUsers.slice(Math.max(0, currentIndex - 5), currentIndex + 6),
+          totalUsers: globalRes.data.totalUsers ?? rankedUsers.length
+        });
       } catch (error) {
-        toast.error('Unable to load leaderboard');
+        toast.error(t('Unable to load leaderboard'));
       } finally {
         setLoading(false);
       }
@@ -27,64 +39,91 @@ export const Leaderboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <div className="leaderboard-page">
       <Toaster position="top-right" />
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="leaderboard-content">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Leaderboard</p>
-            <h1 className="text-3xl font-bold text-slate-900">Climb the ranks and unlock titles</h1>
+            <p className="section-eyebrow">{t('LEVEL & XP')}</p>
+            <h1>{t('Every level. Every player.')}</h1>
+            <p className="leaderboard-subtitle">{t('See how your progress compares across the whole community.')}</p>
           </div>
-          <button onClick={() => navigate('/dashboard')} className="rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white">Back to dashboard</button>
+          <button onClick={() => navigate('/dashboard')} className="secondary-button">{t('Back to dashboard')}</button>
         </div>
 
         {rankData && (
-          <div className="rounded-3xl bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white shadow-sm">
-            <p className="text-sm uppercase tracking-[0.25em]">Your position</p>
-            <h2 className="mt-2 text-2xl font-semibold">You’re ranked #{rankData.currentUser?.rank || rankData.rank || '—'} — {rankData.currentUser?.title || 'Novice'}</h2>
-            <p className="mt-2 text-sm">Level {rankData.currentUser?.level} • {rankData.currentUser?.xp} XP • Streak {rankData.currentUser?.streak}</p>
+          <GlassCard className="leaderboard-you-card">
+            <div className="leaderboard-you-card__rank">#{rankData.currentUser?.rank || '—'}</div>
+            <div className="leaderboard-you-card__details">
+              <small>{t('YOUR CURRENT RANK')}</small>
+              <h2>{t(rankData.currentUser?.title || 'Novice')} · {rankData.currentUser?.username}</h2>
+              <p>{t('Level')} {rankData.currentUser?.level} <span>·</span> {rankData.currentUser?.xp} XP <span>·</span> {t('Streak')} {rankData.currentUser?.streak}</p>
+            </div>
+            <div className="leaderboard-you-card__count">{rankData.totalUsers ?? leaderboard.length} {t('players ranked')}</div>
+          </GlassCard>
+        )}
+
+        {!loading && podium.length >= 3 && (
+          <div className="leaderboard-podium" aria-label={t('Top three players')}>
+            {podium.map((entry, index) => (
+              <motion.article
+                key={`${entry.rank}-${entry.username}`}
+                className={`leaderboard-podium__place leaderboard-podium__place--${index + 1}`}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.08, duration: 0.35 }}
+              >
+                <span className="leaderboard-podium__rank">#{entry.rank}</span>
+                <strong>{entry.username}</strong>
+                <small>{t('Level')} {entry.level} · {entry.xp} XP</small>
+              </motion.article>
+            ))}
           </div>
         )}
 
-        <div className="rounded-3xl bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Top 10</h2>
-          {loading ? <div className="mt-4 space-y-3">{[1,2,3].map((idx)=><div key={idx} className="h-14 animate-pulse rounded-2xl bg-slate-100" />)}</div> : (
-            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-100 text-slate-700">
+        <GlassCard className="leaderboard-table-card">
+          <div className="leaderboard-table-heading">
+            <div><h2>{t('All players')}</h2><p>{t('Ranked by total experience points')}</p></div>
+            <span>{leaderboard.length} {t('accounts')}</span>
+          </div>
+          {loading ? <div className="mt-4 space-y-3">{[1,2,3].map((idx)=><Skeleton key={idx} className="h-14 rounded-2xl" />)}</div> : (
+            <div className="leaderboard-table-wrap">
+              <table className="leaderboard-table">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3">Rank</th>
-                    <th className="px-4 py-3">User</th>
-                    <th className="px-4 py-3">Title</th>
-                    <th className="px-4 py-3">Level</th>
-                    <th className="px-4 py-3">XP</th>
-                    <th className="px-4 py-3">Streak</th>
+                    <th>{t('Rank')}</th>
+                    <th>{t('Player')}</th>
+                    <th>{t('Title')}</th>
+                    <th>{t('Level')}</th>
+                    <th>{t('XP')}</th>
+                    <th>{t('Streak')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {leaderboard.slice(0, 10).map((entry) => (
-                    <tr key={entry.username} className="border-t border-slate-200">
-                      <td className="px-4 py-3 font-semibold">#{entry.rank}</td>
-                      <td className="px-4 py-3">{entry.username}</td>
-                      <td className="px-4 py-3">{entry.title}</td>
-                      <td className="px-4 py-3">{entry.level}</td>
-                      <td className="px-4 py-3">{entry.xp}</td>
-                      <td className="px-4 py-3">{entry.streak}</td>
+                  {leaderboard.map((entry) => (
+                    <tr key={`${entry.rank}-${entry.username}`} className={entry.isCurrentUser ? 'leaderboard-current-row' : ''}>
+                      <td className="leaderboard-rank">#{entry.rank}</td>
+                      <td><span className="leaderboard-player-name">{entry.username}</span>{entry.isCurrentUser && <span className="leaderboard-you-badge">{t('YOU')}</span>}</td>
+                      <td>{t(entry.title)}</td>
+                      <td>{entry.level}</td>
+                      <td className="leaderboard-xp">{entry.xp.toLocaleString(language === 'hi' ? 'hi-IN' : 'en-IN')}</td>
+                      <td>{entry.streak} 🔥</td>
                     </tr>
                   ))}
+                  {!leaderboard.length && <tr><td colSpan="6" className="leaderboard-empty">{t('No accounts to rank yet.')}</td></tr>}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </GlassCard>
 
         {rankData?.nearbyUsers?.length > 0 && (
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-slate-900">Nearby users</h3>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {rankData.nearbyUsers.map((user) => <div key={user.username} className="rounded-2xl border border-slate-200 p-4">#{user.rank} • {user.username} • {user.title}</div>)}
+          <GlassCard className="leaderboard-nearby">
+            <h3>{t('Your nearby ranks')}</h3>
+            <div className="leaderboard-nearby__list">
+              {rankData.nearbyUsers.map((nearbyUser) => <div key={`${nearbyUser.rank}-${nearbyUser.username}`} className={nearbyUser.isCurrentUser ? 'is-current' : ''}>#{nearbyUser.rank}<strong>{nearbyUser.username}</strong><span>{t(nearbyUser.title)}</span></div>)}
             </div>
-          </div>
+          </GlassCard>
         )}
       </div>
     </div>

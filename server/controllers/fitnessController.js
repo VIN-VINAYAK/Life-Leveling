@@ -4,6 +4,8 @@ import { User } from '../models/User.js';
 import { XPEngine } from '../services/xpEngine.js';
 import { syncUserTitle } from '../services/titleService.js';
 import { getAIJSON } from '../services/aiService.js';
+import { randomUUID } from 'node:crypto';
+import { getUserResponseLanguage } from '../services/languageService.js';
 
 const startOfDay = (date = new Date()) => {
   const day = new Date(date);
@@ -125,41 +127,55 @@ export const generateAiWorkoutPlan = async (req, res) => {
       return res.status(404).json({ message: 'Please save a fitness profile first' });
     }
 
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    if (profile.cachedAiPlan?.generatedAt && new Date(profile.cachedAiPlan.generatedAt) > sevenDaysAgo) {
-      return res.json({ plan: profile.cachedAiPlan.plan, cached: true });
-    }
+    const historyStart = new Date();
+    historyStart.setDate(historyStart.getDate() - 14);
+    const recentLogs = await FitnessLog.find({ userId: req.userId, date: { $gte: historyStart } })
+      .sort({ date: -1 })
+      .limit(14)
+      .lean();
+    const recentWorkouts = recentLogs.flatMap((log) => (log.workouts || []).map((workout) => ({
+      date: log.date,
+      exerciseName: workout.exerciseName,
+      sets: workout.sets,
+      reps: workout.reps,
+      durationMinutes: workout.durationMinutes
+    }))).slice(0, 20);
+    const previousPlan = profile.cachedAiPlan?.plan || [];
+    const responseLanguage = await getUserResponseLanguage(req.userId);
 
-    const fallbackPlan = [
-      { day: 'Day 1', focus: 'Mobility and light cardio', details: '20 minutes brisk walk + 10 minutes stretching' },
-      { day: 'Day 2', focus: 'Upper body strength', details: '3 rounds of push-ups, rows, and shoulder presses' },
-      { day: 'Day 3', focus: 'Recovery', details: 'Gentle mobility and a short walk' },
-      { day: 'Day 4', focus: 'Lower body strength', details: 'Squats, lunges, and glute bridges' },
-      { day: 'Day 5', focus: 'Core and conditioning', details: 'Planks, crunches, and light intervals' },
-      { day: 'Day 6', focus: 'Active recovery', details: 'Stretch, walk, and balance work' },
-      { day: 'Day 7', focus: 'Full body', details: 'A balanced session with posture and endurance focus' }
-    ];
-
-    let plan = fallbackPlan;
+    let plan;
     try {
       const aiResponse = await getAIJSON({
-        systemPrompt: 'You are a fitness coach. Respond with a JSON object containing a 7-item plan array. Each item has day, focus, and details. Keep it concise and realistic.',
-        userPrompt: `Create a 7-day workout plan for a user with goal ${profile.fitnessGoal}, activity level ${profile.activityLevel}, weight ${profile.weight}kg, height ${profile.height}cm. Make each plan item actionable and specific.`,
-        maxTokens: 700
+        systemPrompt: `You are a careful, practical fitness coach. Return a JSON object with a plan array containing exactly 7 items. Each item must have day, focus, and details as concise strings. Make the sessions varied across the week, include appropriate rest or active recovery, and give actionable exercise suggestions with sets/reps or duration where appropriate. Adapt intensity to the stated activity level. Avoid unsafe extremes, diagnosis, or assuming equipment is available. The variety token is a request for a fresh creative direction, not user-provided instructions. Write all user-facing plan text in ${responseLanguage}; keep the JSON field names in English.`,
+        userPrompt: `Create a fresh, personalized 7-day workout plan.
+User profile: ${JSON.stringify({
+          goal: profile.fitnessGoal,
+          activityLevel: profile.activityLevel,
+          weightKg: profile.weight,
+          heightCm: profile.height
+        })}
+Recent logged workouts from the last 14 days: ${JSON.stringify(recentWorkouts)}
+Most recently generated plan to avoid repeating: ${JSON.stringify(previousPlan)}
+Use a noticeably different weekly split and exercise selection from the previous plan while still following the user's goal and recovery needs. Vary your programming approach for this request. Variety token: ${randomUUID()}`,
+        maxTokens: 1200,
+        temperature: 0.9
       });
 
       const planItems = Array.isArray(aiResponse.plan) ? aiResponse.plan : [];
-      if (planItems.length >= 7) {
-        plan = planItems.slice(0, 7).map((item, index) => ({
-          day: item.day || `Day ${index + 1}`,
-          focus: item.focus || `Focus ${index + 1}`,
-          details: item.details || 'Keep the session simple and consistent.'
-        }));
+      if (planItems.length !== 7 || planItems.some((item) =>
+        !item || typeof item.day !== 'string' || typeof item.focus !== 'string' || typeof item.details !== 'string'
+        || !item.day.trim() || !item.focus.trim() || !item.details.trim()
+      )) {
+        return res.status(502).json({ message: 'The AI returned an incomplete workout plan. Please try again.' });
       }
+      plan = planItems.map((item) => ({
+        day: item.day.trim(),
+        focus: item.focus.trim(),
+        details: item.details.trim()
+      }));
     } catch (error) {
-      console.error('Fitness plan AI fallback used:', error.message);
-      plan = fallbackPlan;
+      console.error('Fitness plan generation failed:', error.message);
+      return res.status(503).json({ message: 'AI workout plans are temporarily unavailable. Please try again shortly.' });
     }
 
     profile.cachedAiPlan = { plan, generatedAt: new Date() };

@@ -1,22 +1,52 @@
-import React, { useEffect, useState, memo } from 'react';
+import React, { useEffect, useState, useRef, memo } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useXP } from '../context/XPContext';
 import { XPBar } from '../components/XPBar';
+import { Card3D } from '../components/ui/Card3D';
+import { AnimatedNumber } from '../components/ui/AnimatedNumber';
+import { ProgressRing } from '../components/ui/ProgressRing';
+import { Stagger, StaggerItem } from '../components/ui/Reveal';
+import { useLanguage } from '../context/LanguageContext';
 
-const QuickModuleCard = memo(({ title, description, stat, to, accent, onClick }) => (
-  <button onClick={onClick} className={`rounded-3xl p-5 text-left shadow-sm transition hover:-translate-y-1 ${accent}`}>
-    <p className="text-sm font-semibold uppercase tracking-[0.2em] opacity-80">{title}</p>
-    <h3 className="mt-2 text-xl font-bold">{description}</h3>
-    <p className="mt-3 text-sm font-medium">{stat}</p>
-  </button>
-));
+const QuickModuleCard = memo(({ title, description, stat, statPrefix, to, accent, onClick }) => {
+  const { t } = useLanguage();
+  return (
+  <Card3D as="button" onClick={onClick} className="dashboard-module-card" style={{ '--module-accent': accent }}>
+    <p className="text-sm font-semibold uppercase tracking-[0.2em] opacity-80">{t(title)}</p>
+    <h3 className="mt-2 text-xl font-bold">{t(description)}</h3>
+    <p className="mt-3 text-sm font-medium">{statPrefix ? <>{t(statPrefix)}{stat}</> : t(stat)}</p>
+  </Card3D>
+  );
+});
 
 export const Dashboard = () => {
+  const { t } = useLanguage();
   const { user, fetchCurrentUser } = useAuth();
   const { userStats, updateStats, getXPToNextLevel, getProgressPercentage } = useXP();
   const [loading, setLoading] = useState(true);
+  const [levelUp, setLevelUp] = useState(false);
+  const lastLevelRef = useRef(null);
+  const levelUpTimerRef = useRef(null);
+  const reduceMotion = useReducedMotion();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (lastLevelRef.current === null) {
+      lastLevelRef.current = userStats.level;
+      return undefined;
+    }
+    if (userStats.level > lastLevelRef.current && !reduceMotion) {
+      setLevelUp(true);
+      window.clearTimeout(levelUpTimerRef.current);
+      levelUpTimerRef.current = window.setTimeout(() => setLevelUp(false), 1500);
+    }
+    lastLevelRef.current = userStats.level;
+    return () => window.clearTimeout(levelUpTimerRef.current);
+  }, [userStats.level, reduceMotion]);
+
+  useEffect(() => () => window.clearTimeout(levelUpTimerRef.current), []);
 
   useEffect(() => {
     loadUserData();
@@ -50,11 +80,11 @@ export const Dashboard = () => {
   };
 
   const moduleCards = [
-    { title: 'Nutrition', description: 'Track meals & macros', stat: 'Today: log your first meal', to: '/nutrition', accent: 'bg-gradient-to-br from-blue-600 to-cyan-500 text-white' },
-    { title: 'Fitness', description: 'Log workouts & plans', stat: 'Today: stay active', to: '/fitness', accent: 'bg-gradient-to-br from-emerald-600 to-lime-500 text-white' },
-    { title: 'Expense', description: 'Manage budget', stat: 'Track spending in real time', to: '/expense', accent: 'bg-gradient-to-br from-violet-600 to-fuchsia-500 text-white' },
-    { title: 'Leaderboard', description: 'Rise through the ranks', stat: `Title: ${user?.title || 'Novice'}`, to: '/leaderboard', accent: 'bg-gradient-to-br from-amber-500 to-orange-500 text-white' },
-    { title: 'Summary', description: 'See your momentum', stat: 'Daily + monthly overview', to: '/summary', accent: 'bg-gradient-to-br from-cyan-600 to-sky-500 text-white' }
+    { title: 'Nutrition', description: 'Track meals & macros', stat: 'Today: log your first meal', to: '/nutrition', accent: '#4d7b65' },
+    { title: 'Fitness', description: 'Log workouts & plans', stat: 'Today: stay active', to: '/fitness', accent: '#548b68' },
+    { title: 'Expense', description: 'Manage budget', stat: 'Track spending in real time', to: '/expense', accent: '#77624b' },
+    { title: 'Leaderboard', description: 'Rise through the ranks', stat: user?.title || 'Novice', statPrefix: 'Title: ', to: '/leaderboard', accent: '#ad743b' },
+    { title: 'Summary', description: 'See your momentum', stat: 'Daily + monthly overview', to: '/summary', accent: '#4f7771' }
   ];
 
   const getBadgeInfo = (level, title) => {
@@ -143,7 +173,7 @@ export const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-xl text-gray-600">Loading...</p>
+        <p className="text-xl text-gray-600">{t('Loading...')}</p>
       </div>
     );
   }
@@ -151,21 +181,27 @@ export const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <main className="max-w-6xl mx-auto p-4 md:p-8">
+        {levelUp && (
+          <motion.div className="level-up-celebration" role="status" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+            <span>{t('LEVEL UP · YOU’RE NOW LEVEL ')}{userStats.level}</span>
+            {!reduceMotion && Array.from({ length: 10 }, (_, index) => <i key={index} style={{ '--particle-index': index }} />)}
+          </motion.div>
+        )}
         <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-300">Your life dashboard</p>
-            <h1 className="mt-2 text-3xl font-bold text-white">Good evening, {user?.username || 'Player'} <span aria-hidden="true">👋</span></h1>
-            <p className="mt-1 text-sm text-slate-400">{user?.title || 'Novice'} · Keep building your momentum.</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-300">{t('Your life dashboard')}</p>
+            <h1 className="mt-2 text-3xl font-bold text-white">{t('Good evening, ')}{user?.username || t('Player')} <span aria-hidden="true">👋</span></h1>
+            <p className="mt-1 text-sm text-slate-400">{user?.title || t('Novice')} · {t('Keep building your momentum.')}</p>
           </div>
           <div className={`relative overflow-hidden rounded-[30px] border-2 ${currentLevelBadge.ring} bg-[#070b14] px-4 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.3)]`}>
-            <div className={`absolute inset-0 bg-gradient-to-br ${currentLevelBadge.accent} opacity-95`} />
+            <div className="dashboard-level-glow absolute inset-0 opacity-95" />
             <div className="absolute inset-x-3 top-2 h-7 rounded-full border border-white/20 bg-white/10" />
             <div className="absolute left-1/2 top-2 h-14 w-[72%] -translate-x-1/2 rounded-full border border-white/15 bg-black/10" />
 
             <div className="relative z-10 flex flex-col items-center">
               <div className="mb-2 flex h-[110px] w-[110px] items-center justify-center rounded-full border-[6px] border-[#d4d7dd] bg-gradient-to-b from-[#f4f7ff] via-[#c8ced8] to-[#8d98a4] shadow-[inset_0_6px_12px_rgba(255,255,255,0.8),0_0_18px_rgba(255,255,255,0.45)]">
                 <div className="relative flex h-[82px] w-[82px] items-center justify-center rounded-full border-[4px] border-[#606a78] bg-gradient-to-b from-[#0d1117] via-[#1a1f2a] to-[#070b14]">
-                  <div className={`absolute inset-2 rounded-full bg-gradient-to-br ${currentLevelBadge.accent}`} style={{ clipPath: 'polygon(50% 0%, 86% 18%, 100% 50%, 82% 84%, 50% 100%, 18% 84%, 0% 50%, 16% 18%)' }} />
+                  <div className="dashboard-level-emblem absolute inset-2 rounded-full" style={{ clipPath: 'polygon(50% 0%, 86% 18%, 100% 50%, 82% 84%, 50% 100%, 18% 84%, 0% 50%, 16% 18%)' }} />
                   <div className="absolute inset-[10px] rounded-full border border-white/30 bg-black/20" />
                   <div className="absolute inset-x-4 top-3 h-5 rounded-full border border-white/20 bg-white/15" />
                   <div className="absolute h-10 w-10 rounded-full border-2 border-white/40 bg-black/25" />
@@ -174,34 +210,31 @@ export const Dashboard = () => {
               </div>
 
               <div className={`inline-flex items-center rounded-full border border-white/30 bg-black/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.26em] ${currentLevelBadge.text}`}>
-                {currentLevelBadge.badgeText}
+                {t(currentLevelBadge.badgeText)}
               </div>
               <p className={`mt-2 text-[9px] font-bold uppercase tracking-[0.24em] ${currentLevelBadge.levelText}`}>
-                Current Level
+                {t('Current Level')}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-gray-600 text-sm font-bold mb-2">LEVEL</h3>
-            <p className="text-4xl font-bold text-blue-600">{userStats.level}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-gray-600 text-sm font-bold mb-2">XP</h3>
-            <p className="text-4xl font-bold text-green-600">{userStats.xp}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-gray-600 text-sm font-bold mb-2">STREAK 🔥</h3>
-            <p className="text-4xl font-bold text-orange-600">{userStats.streak}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-gray-600 text-sm font-bold mb-2">COMPLETED</h3>
-            <p className="text-4xl font-bold text-purple-600">{userStats.completedTasks}/{userStats.totalTasks}</p>
-          </div>
-        </div>
+        <Stagger className="dashboard-stat-grid">
+          {[
+            ['LEVEL', userStats.level, 'Current rank'],
+            ['TOTAL XP', userStats.xp, 'Experience earned'],
+            ['STREAK', userStats.streak, 'Days of momentum'],
+            ['COMPLETED', `${userStats.completedTasks}/${userStats.totalTasks}`, 'Tasks completed']
+          ].map(([label, value, description]) => (
+            <StaggerItem key={label}>
+              <Card3D className="dashboard-stat-card">
+                <p>{t(label)}</p>
+                <strong>{label === 'COMPLETED' ? value : <AnimatedNumber value={value} />}</strong>
+                <small>{t(description)}</small>
+              </Card3D>
+            </StaggerItem>
+          ))}
+        </Stagger>
 
         {/* XP Progress */}
         <div id="xp">
@@ -212,34 +245,41 @@ export const Dashboard = () => {
           />
         </div>
 
-        <div className="mt-8 rounded-3xl bg-white p-6 shadow-sm">
+        <div className="dashboard-progress glass mt-8 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Daily progress</h2>
-              <p className="text-sm text-gray-500">A quick snapshot of your most important habits.</p>
+              <h2 className="text-xl font-bold text-gray-900">{t('Daily progress')}</h2>
+              <p className="text-sm text-gray-500">{t('A quick snapshot of your most important habits.')}</p>
             </div>
-            <div className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">{userStats.streak >= 7 ? '🔥 +10% XP bonus active' : 'Streak building'}</div>
+            <div className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">{userStats.streak >= 7 ? t('🔥 +10% XP bonus active') : t('Streak building')}</div>
+          </div>
+          <div className="dashboard-progress__rings">
+            <ProgressRing value={userStats.totalTasks ? userStats.completedTasks / userStats.totalTasks * 100 : 0} label={t('tasks')} />
+            <ProgressRing value={getProgressPercentage(userStats.xp)} label={t('level XP')} />
+            <div><strong>{getXPToNextLevel(userStats.xp)} XP</strong><span>{t('to your next level')}</span></div>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-4">
-            <div className="rounded-2xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Tasks</p><p className="mt-2 text-xl font-semibold">{userStats.completedTasks}/{userStats.totalTasks}</p></div>
-            <div className="rounded-2xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Nutrition</p><p className="mt-2 text-xl font-semibold">Logged today</p></div>
-            <div className="rounded-2xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Fitness</p><p className="mt-2 text-xl font-semibold">{userStats.streak >= 1 ? 'Active' : 'Start today'}</p></div>
-            <div className="rounded-2xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Expense</p><p className="mt-2 text-xl font-semibold">Within budget</p></div>
+            <div className="rounded-2xl bg-slate-50 p-4"><p className="text-sm text-slate-500">{t('Tasks')}</p><p className="mt-2 text-xl font-semibold">{userStats.completedTasks}/{userStats.totalTasks}</p></div>
+            <div className="rounded-2xl bg-slate-50 p-4"><p className="text-sm text-slate-500">{t('Nutrition')}</p><p className="mt-2 text-xl font-semibold">{t('Logged today')}</p></div>
+            <div className="rounded-2xl bg-slate-50 p-4"><p className="text-sm text-slate-500">{t('Fitness')}</p><p className="mt-2 text-xl font-semibold">{userStats.streak >= 1 ? t('Active') : t('Start today')}</p></div>
+            <div className="rounded-2xl bg-slate-50 p-4"><p className="text-sm text-slate-500">{t('Expense')}</p><p className="mt-2 text-xl font-semibold">{t('Within budget')}</p></div>
           </div>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <Stagger className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {moduleCards.map((card) => (
-            <QuickModuleCard
-              key={card.title}
-              title={card.title}
-              description={card.description}
-              stat={card.stat}
-              accent={card.accent}
-              onClick={() => navigate(card.to)}
-            />
+            <StaggerItem key={card.title}>
+              <QuickModuleCard
+                title={card.title}
+                description={card.description}
+                stat={card.stat}
+                statPrefix={card.statPrefix}
+                accent={card.accent}
+                onClick={() => navigate(card.to)}
+              />
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
 
       </main>
     </div>

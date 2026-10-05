@@ -1,65 +1,46 @@
 import { User } from '../models/User.js';
 
-const CACHE_TTL_MS = 60_000;
-const leaderboardCache = new Map();
+const rankFields = 'username level xp title streak';
 
-const getCached = (key) => {
-  const cached = leaderboardCache.get(key);
-  if (!cached) return null;
-  if (Date.now() - cached.timestamp > CACHE_TTL_MS) {
-    leaderboardCache.delete(key);
-    return null;
-  }
-  return cached.value;
-};
+const getRankedUsers = () => User.find({}, rankFields)
+  .sort({ xp: -1, level: -1, _id: 1 })
+  .lean();
 
-const setCached = (key, value) => {
-  leaderboardCache.set(key, { value, timestamp: Date.now() });
-};
+const publicRank = (user, rank, currentUserId) => ({
+  isCurrentUser: currentUserId ? user._id.toString() === currentUserId : false,
+  rank,
+  username: user.username,
+  level: user.level,
+  xp: user.xp,
+  title: user.title || 'Novice',
+  streak: user.streak || 0
+});
 
 export const getGlobalLeaderboard = async (req, res) => {
   try {
-    const cacheKey = 'global-leaderboard';
-    const cached = getCached(cacheKey);
-    if (cached) return res.json({ leaderboard: cached });
-
-    const leaderboard = await User.find({}, { password: 0, email: 0 })
-      .sort({ xp: -1, level: -1 })
-      .limit(50)
-      .lean();
-
-    const sanitized = leaderboard.map((user, index) => ({
-      rank: index + 1,
-      username: user.username,
-      level: user.level,
-      xp: user.xp,
-      title: user.title || 'Novice',
-      streak: user.streak || 0
-    }));
-
-    setCached(cacheKey, sanitized);
-    return res.json({ leaderboard: sanitized });
+    const users = await getRankedUsers();
+    const leaderboard = users.map((user, index) => publicRank(user, index + 1, req.userId));
+    return res.json({ leaderboard, totalUsers: leaderboard.length });
   } catch (error) {
-    return res.status(500).json({ message: 'Failed to fetch leaderboard', error: error.message });
+    console.error('Fetch global leaderboard failed:', error);
+    return res.status(500).json({ message: 'Failed to fetch leaderboard' });
   }
 };
 
 export const getUserRank = async (req, res) => {
   try {
-    const cacheKey = `rank-${req.userId}`;
-    const cached = getCached(cacheKey);
-    if (cached) return res.json(cached);
+    const users = await getRankedUsers();
+    const currentIndex = users.findIndex((user) => user._id.toString() === req.userId);
+    if (currentIndex < 0) return res.status(404).json({ message: 'User not found' });
 
-    const users = await User.find({}, { password: 0, email: 0 }).sort({ xp: -1, level: -1 }).lean();
-    const rankedUsers = users.map((user, index) => ({ ...user, rank: index + 1 }));
-    const current = rankedUsers.find((user) => user._id.toString() === req.userId);
-    if (!current) return res.status(404).json({ message: 'User not found' });
-
-    const nearby = rankedUsers.filter((user) => user.rank >= current.rank - 5 && user.rank <= current.rank + 5);
-    const payload = { currentUser: { username: current.username, rank: current.rank, title: current.title || 'Novice', level: current.level, xp: current.xp, streak: current.streak || 0 }, nearbyUsers: nearby.map((user) => ({ rank: user.rank, username: user.username, title: user.title || 'Novice', level: user.level, xp: user.xp, streak: user.streak || 0 })) };
-    setCached(cacheKey, payload);
-    return res.json(payload);
+    const currentUser = publicRank(users[currentIndex], currentIndex + 1, req.userId);
+    const nearbyStart = Math.max(0, currentIndex - 5);
+    const nearbyUsers = users
+      .slice(nearbyStart, Math.min(users.length, currentIndex + 6))
+      .map((user, index) => publicRank(user, nearbyStart + index + 1, req.userId));
+    return res.json({ currentUser, nearbyUsers, totalUsers: users.length });
   } catch (error) {
-    return res.status(500).json({ message: 'Failed to fetch your rank', error: error.message });
+    console.error('Fetch user rank failed:', error);
+    return res.status(500).json({ message: 'Failed to fetch your rank' });
   }
 };

@@ -3,17 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { fitnessAPI } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
+import { GlassCard } from '../components/ui/GlassCard';
 
 const initialProfile = { weight: '', height: '', fitnessGoal: 'maintain', activityLevel: 'moderate' };
 const initialWorkout = { exerciseName: '', sets: '', reps: '', durationMinutes: '', caloriesBurned: '' };
 
 export const Fitness = () => {
+  const { language, t } = useLanguage();
+  const locale = language === 'hi' ? 'hi-IN' : 'en';
   const navigate = useNavigate();
   const [profile, setProfile] = useState(initialProfile);
   const [workout, setWorkout] = useState(initialWorkout);
   const [todayLog, setTodayLog] = useState(null);
   const [history, setHistory] = useState([]);
   const [plan, setPlan] = useState([]);
+  const [planLoading, setPlanLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
@@ -29,7 +34,7 @@ export const Fitness = () => {
       setTodayLog(todayRes.data.log);
       setHistory(historyRes.data.logs || []);
     } catch (error) {
-      toast.error('Unable to load fitness data');
+      toast.error(t('Unable to load fitness data'));
     } finally {
       setLoading(false);
     }
@@ -38,17 +43,19 @@ export const Fitness = () => {
   useEffect(() => { loadData(); }, []);
 
   const chartData = useMemo(() => history.slice(0, 7).reverse().map((entry) => ({
-    day: new Date(entry.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+    day: new Date(entry.date).toLocaleDateString(locale, { month: 'short', day: 'numeric' }),
     minutes: entry.totalDuration || 0
-  })), [history]);
+  })), [history, locale]);
+  const weeklyMinutes = useMemo(() => chartData.reduce((total, entry) => total + Number(entry.minutes || 0), 0), [chartData]);
+  const activeDays = useMemo(() => chartData.filter((entry) => Number(entry.minutes) > 0).length, [chartData]);
 
   const handleProfileSave = async (e) => {
     e.preventDefault();
     try {
       await fitnessAPI.saveProfile(profile);
-      toast.success('Fitness profile updated');
+      toast.success(t('Fitness profile updated'));
     } catch (error) {
-      toast.error('Could not save profile');
+      toast.error(t('Could not save profile'));
     }
   };
 
@@ -56,21 +63,24 @@ export const Fitness = () => {
     e.preventDefault();
     try {
       await fitnessAPI.logWorkout(workout);
-      toast.success('Workout logged');
+      toast.success(t('Workout logged'));
       setWorkout(initialWorkout);
       await loadData();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Could not log workout');
+      toast.error(error.response?.data?.message || t('Could not log workout'));
     }
   };
 
   const handlePlan = async () => {
+    setPlanLoading(true);
     try {
       const response = await fitnessAPI.generatePlan();
       setPlan(response.data.plan || []);
-      toast.success('AI workout plan ready');
+      toast.success(t('A fresh AI workout plan is ready'));
     } catch (error) {
-      toast.error('Could not generate workout plan');
+      toast.error(error.response?.data?.message || t('Could not generate workout plan'));
+    } finally {
+      setPlanLoading(false);
     }
   };
 
@@ -80,49 +90,49 @@ export const Fitness = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600">Fitness AI</p>
-            <h1 className="text-3xl font-bold text-slate-900">Workout logging and personalised plans</h1>
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-600">{t('Fitness AI')}</p>
+            <h1 className="text-3xl font-bold text-slate-900">{t('Workout logging and personalised plans')}</h1>
           </div>
-          <button onClick={() => navigate('/dashboard')} className="rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white">Back to dashboard</button>
+          <button onClick={() => navigate('/dashboard')} className="rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white">{t('Back to dashboard')}</button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Fitness profile</h2>
+            <h2 className="text-xl font-semibold text-slate-900">{t('Fitness profile')}</h2>
             <form onSubmit={handleProfileSave} className="mt-4 grid gap-4 md:grid-cols-2">
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" placeholder="Weight (kg)" value={profile.weight} onChange={(e) => setProfile({ ...profile, weight: e.target.value })} />
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" placeholder="Height (cm)" value={profile.height} onChange={(e) => setProfile({ ...profile, height: e.target.value })} />
+              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" placeholder={t('Weight (kg)')} value={profile.weight} onChange={(e) => setProfile({ ...profile, weight: e.target.value })} />
+              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" placeholder={t('Height (cm)')} value={profile.height} onChange={(e) => setProfile({ ...profile, height: e.target.value })} />
               <select className="rounded-xl border border-slate-200 px-3 py-2" value={profile.fitnessGoal} onChange={(e) => setProfile({ ...profile, fitnessGoal: e.target.value })}>
-                <option value="lose_weight">Lose weight</option>
-                <option value="build_muscle">Build muscle</option>
-                <option value="maintain">Maintain</option>
-                <option value="improve_endurance">Improve endurance</option>
+                <option value="lose_weight">{t('Lose weight')}</option>
+                <option value="build_muscle">{t('Build muscle')}</option>
+                <option value="maintain">{t('Maintain')}</option>
+                <option value="improve_endurance">{t('Improve endurance')}</option>
               </select>
               <select className="rounded-xl border border-slate-200 px-3 py-2" value={profile.activityLevel} onChange={(e) => setProfile({ ...profile, activityLevel: e.target.value })}>
-                <option value="sedentary">Sedentary</option>
-                <option value="light">Light</option>
-                <option value="moderate">Moderate</option>
-                <option value="very_active">Very active</option>
+                <option value="sedentary">{t('Sedentary')}</option>
+                <option value="light">{t('Light')}</option>
+                <option value="moderate">{t('Moderate')}</option>
+                <option value="very_active">{t('Very active')}</option>
               </select>
-              <button type="submit" className="md:col-span-2 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white">Save profile</button>
+              <button type="submit" className="md:col-span-2 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white">{t('Save profile')}</button>
             </form>
           </div>
 
           <div className="rounded-3xl bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">Today’s workout</h2>
-                <p className="text-sm text-slate-500">Track your session and earn XP.</p>
+                <h2 className="text-xl font-semibold text-slate-900">{t('Today’s workout')}</h2>
+                <p className="text-sm text-slate-500">{t('Track your session and earn XP.')}</p>
               </div>
               <div className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">{todayLog?.xpAwarded || 0} XP</div>
             </div>
             <form onSubmit={handleWorkoutLog} className="mt-4 grid gap-4 md:grid-cols-2">
-              <input className="rounded-xl border border-slate-200 px-3 py-2" placeholder="Exercise name" value={workout.exerciseName} onChange={(e) => setWorkout({ ...workout, exerciseName: e.target.value })} required />
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder="Sets" value={workout.sets} onChange={(e) => setWorkout({ ...workout, sets: e.target.value })} />
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder="Reps" value={workout.reps} onChange={(e) => setWorkout({ ...workout, reps: e.target.value })} />
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder="Duration (min)" value={workout.durationMinutes} onChange={(e) => setWorkout({ ...workout, durationMinutes: e.target.value })} />
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder="Calories burned" value={workout.caloriesBurned} onChange={(e) => setWorkout({ ...workout, caloriesBurned: e.target.value })} />
-              <button type="submit" className="md:col-span-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white">Log workout</button>
+              <input className="rounded-xl border border-slate-200 px-3 py-2" placeholder={t('Exercise name')} value={workout.exerciseName} onChange={(e) => setWorkout({ ...workout, exerciseName: e.target.value })} required />
+              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder={t('Sets')} value={workout.sets} onChange={(e) => setWorkout({ ...workout, sets: e.target.value })} />
+              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder={t('Reps')} value={workout.reps} onChange={(e) => setWorkout({ ...workout, reps: e.target.value })} />
+              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder={t('Duration (min)')} value={workout.durationMinutes} onChange={(e) => setWorkout({ ...workout, durationMinutes: e.target.value })} />
+              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder={t('Calories burned')} value={workout.caloriesBurned} onChange={(e) => setWorkout({ ...workout, caloriesBurned: e.target.value })} />
+              <button type="submit" className="md:col-span-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white">{t('Log workout')}</button>
             </form>
           </div>
         </div>
@@ -130,8 +140,15 @@ export const Fitness = () => {
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-3xl bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-900">Today’s workout summary</h2>
-              <button onClick={handlePlan} className="rounded-xl bg-purple-600 px-4 py-2 font-semibold text-white">Generate AI Workout Plan</button>
+              <h2 className="text-xl font-semibold text-slate-900">{t('Today’s workout summary')}</h2>
+              <button
+                onClick={handlePlan}
+                disabled={planLoading}
+                aria-busy={planLoading}
+                className="rounded-xl bg-purple-600 px-4 py-2 font-semibold text-white disabled:cursor-wait disabled:opacity-70"
+              >
+                {planLoading ? t('Creating a fresh plan…') : plan.length ? t('Generate a different plan') : t('Generate AI Workout Plan')}
+              </button>
             </div>
             {loading ? (
               <div className="mt-4 space-y-3">
@@ -143,41 +160,59 @@ export const Fitness = () => {
                   <div key={`${item.exerciseName}-${index}`} className="rounded-2xl border border-slate-200 p-4">
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-slate-900">{item.exerciseName}</p>
-                      <p className="text-sm text-slate-500">{item.durationMinutes || 0} min</p>
+                      <p className="text-sm text-slate-500">{item.durationMinutes || 0} {t('Minutes')}</p>
                     </div>
-                    <p className="mt-2 text-sm text-slate-600">Sets {item.sets || 0} • Reps {item.reps || 0} • Burned {item.caloriesBurned || 0} kcal</p>
+                    <p className="mt-2 text-sm text-slate-600">{t('Sets')} {item.sets || 0} • {t('Reps')} {item.reps || 0} • {t('Burned')} {item.caloriesBurned || 0} kcal</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="mt-4 rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">No workouts logged yet today.</p>
+              <p className="mt-4 rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">{t('No workouts logged yet today.')}</p>
             )}
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-3xl bg-white p-6 shadow-sm">
-              <div className="flex items-end justify-between gap-4">
+            <GlassCard className="fitness-chart-card">
+              <div className="fitness-chart-heading">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900">Weekly activity</h3>
-                  <p className="mt-1 text-xs text-slate-500">Workout duration by day</p>
+                  <p className="fitness-chart-eyebrow">{t('YOUR MOVEMENT')}</p>
+                  <h3>{t('Weekly activity')}</h3>
+                  <p>{t('Workout duration by day')}</p>
                 </div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Minutes</span>
+                <div className="fitness-chart-summary"><strong>{weeklyMinutes.toLocaleString(locale)}</strong><span>{t('minutes this week')}</span></div>
               </div>
-              <div className="mt-4 h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid stroke="#27304e" strokeDasharray="3 3" />
-                    <XAxis dataKey="day" tick={{ fill: '#8f98bb', fontSize: 11 }} axisLine={{ stroke: '#384263' }} tickLine={false} />
-                    <YAxis unit="m" tick={{ fill: '#8f98bb', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <Tooltip formatter={(value) => [`${value} min`, 'Duration']} contentStyle={{ background: '#151b32', border: '1px solid #384263', borderRadius: 10 }} />
-                    <Bar dataKey="minutes" fill="#10b981" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              {chartData.length ? (
+                <div className="fitness-chart">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 10, right: 8, left: -15, bottom: 0 }} barCategoryGap="34%">
+                    <defs>
+                      <linearGradient id="fitnessBarFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--success)" stopOpacity={1} />
+                        <stop offset="100%" stopColor="var(--accent-strong)" stopOpacity={0.76} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="var(--line)" strokeDasharray="4 6" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} dy={9} />
+                    <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} width={38} />
+                    <Tooltip
+                      cursor={{ fill: 'var(--mist)', radius: 8 }}
+                      formatter={(value) => [`${Number(value).toLocaleString(locale)} ${t('Minutes')}`, t('Duration')]}
+                      contentStyle={{ background: 'var(--bg-panel-raised)', color: 'var(--text)', border: '1px solid var(--line)', borderRadius: 12, boxShadow: 'var(--elev-2)' }}
+                      labelStyle={{ color: 'var(--muted)', marginBottom: 4 }}
+                    />
+                    <Bar dataKey="minutes" name={t('Minutes')} fill="url(#fitnessBarFill)" radius={[7, 7, 3, 3]} maxBarSize={38} background={{ fill: 'var(--bg-panel-soft)', radius: 7 }} animationDuration={650} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : <p className="fitness-chart-empty">{t('Your workout history will appear here when you log a session.')}</p>}
+              <div className="fitness-chart-footer">
+                <span><i /> {t('Workout minutes')}</span>
+                <strong>{activeDays} / 7 {t('active days')}</strong>
               </div>
-            </div>
+            </GlassCard>
             {plan.length > 0 && (
               <div className="rounded-3xl bg-gradient-to-br from-purple-600 to-blue-600 p-6 text-white shadow-sm">
-                <h3 className="text-lg font-semibold">7-day plan</h3>
+                <h3 className="text-lg font-semibold">{t('7-day plan')}</h3>
                 <div className="mt-3 space-y-3">
                   {plan.map((item, index) => (
                     <div key={index} className="rounded-2xl bg-white/15 p-3">

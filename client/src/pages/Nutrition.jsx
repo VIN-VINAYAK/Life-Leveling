@@ -1,28 +1,43 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import toast, { Toaster } from 'react-hot-toast';
+import { ArrowLeft, ChevronDown, Sparkles } from 'lucide-react';
 import { nutritionAPI } from '../services/api';
-import { FoodImageAnalyzer } from '../components/nutrition/FoodImageAnalyzer';
+import { FoodTextAnalyzer } from '../components/nutrition/FoodTextAnalyzer';
+import { AnimatedNumber } from '../components/ui/AnimatedNumber';
+import { Skeleton } from '../components/ui/Skeleton';
+import { GlassCard } from '../components/ui/GlassCard';
+import { useXP } from '../context/XPContext';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const initialForm = { foodName: '', calories: '', carbs: '', protein: '', fat: '', quantity: '1' };
 
 export const Nutrition = () => {
+  const { language, t } = useLanguage();
+  const locale = language === 'hi' ? 'hi-IN' : 'en';
   const navigate = useNavigate();
+  const manualEntryRef = useRef(null);
+  const manualFoodRef = useRef(null);
+  const { userStats, updateStats } = useXP();
+  const { user, fetchCurrentUser } = useAuth();
   const [form, setForm] = useState(initialForm);
   const [todayLog, setTodayLog] = useState(null);
   const [history, setHistory] = useState([]);
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loggingBatch, setLoggingBatch] = useState(false);
+  const [showManual, setShowManual] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const [todayRes, historyRes] = await Promise.all([nutritionAPI.getToday(), nutritionAPI.getHistory()]);
       setTodayLog(todayRes.data);
       setHistory(historyRes.data.logs || []);
     } catch (error) {
-      toast.error('Unable to load nutrition data');
+      toast.error(error.response?.data?.message || t('Unable to load nutrition data'));
     } finally {
       setLoading(false);
     }
@@ -42,167 +57,211 @@ export const Nutrition = () => {
   }, [todayLog]);
 
   const chartData = useMemo(() => history.slice(0, 7).reverse().map((entry) => ({
-    date: new Date(entry.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+    date: new Date(entry.date).toLocaleDateString(locale, { month: 'short', day: 'numeric' }),
     calories: entry.totalCalories || 0
-  })), [history]);
+  })), [history, locale]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const syncAward = async (responseData) => {
+    if (responseData.userStats) {
+      updateStats({
+        ...userStats,
+        ...responseData.userStats,
+        streak: userStats.streak,
+        totalTasks: userStats.totalTasks,
+        completedTasks: userStats.completedTasks
+      });
+      await fetchCurrentUser();
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     try {
-      await nutritionAPI.logMeal(form);
-      toast.success('Meal logged successfully');
+      const response = await nutritionAPI.logMeal({
+        ...form,
+        calories: Number(form.calories),
+        carbs: Number(form.carbs),
+        protein: Number(form.protein),
+        fat: Number(form.fat),
+        quantity: Number(form.quantity)
+      });
+      toast.success(t('Meal logged · +8 XP'));
+      await syncAward(response.data);
       setForm(initialForm);
-      await loadData();
+      await loadData(false);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save meal');
+      toast.error(error.response?.data?.message || t('Failed to save meal'));
+    }
+  };
+
+  const handleBatchLog = async (items) => {
+    if (loggingBatch) return;
+    setLoggingBatch(true);
+    try {
+      const response = await nutritionAPI.logBatch({ items });
+      toast.success(t('Meal logged · +8 XP'));
+      await syncAward(response.data);
+      await loadData(false);
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('Failed to log this meal'));
+    } finally {
+      setLoggingBatch(false);
     }
   };
 
   const handleInsights = async () => {
     try {
-      const payload = {
+      const response = await nutritionAPI.getAiInsights({
         nutritionData: {
           calories: totals.calories,
           protein: totals.protein,
           carbs: totals.carbs,
           fat: totals.fat
         }
-      };
-      const response = await nutritionAPI.getAiInsights(payload);
+      });
       setInsights(response.data.insights);
-      toast.success('AI insights loaded');
+      await syncAward(response.data);
+      toast.success(t('AI insights loaded'));
     } catch (error) {
-      toast.error('AI insights unavailable right now');
+      toast.error(error.response?.data?.message || t('AI insights unavailable right now'));
     }
   };
 
+  const enterManual = () => {
+    setShowManual(true);
+    window.requestAnimationFrame(() => {
+      if (manualEntryRef.current) manualEntryRef.current.open = true;
+      manualFoodRef.current?.focus();
+      manualEntryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <div className="page-shell nutrition-page">
       <Toaster position="top-right" />
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="nutrition-page__content">
+        <header className="nutrition-page__header">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-600">Nutry AI</p>
-            <h1 className="text-3xl font-bold text-slate-900">Nutrition tracking and smart guidance</h1>
+            <p className="section-eyebrow"><Sparkles size={15} /> LIFE LEVELING / {t('Nutrition')}</p>
+            <h1>{t('Nutrition, in context.')}</h1>
+            <p>{t('Make every meal part of your training plan, ')}{user?.username || t('Player')}.</p>
           </div>
-          <button onClick={() => navigate('/dashboard')} className="rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white">Back to dashboard</button>
-        </div>
+          <button type="button" className="secondary-button" onClick={() => navigate('/dashboard')}>
+            <ArrowLeft size={16} /> {t('Dashboard')}
+          </button>
+        </header>
 
-        <FoodImageAnalyzer />
+        <FoodTextAnalyzer onLog={handleBatchLog} logging={loggingBatch} onEnterManually={enterManual} />
 
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Log a meal</h2>
-            <form onSubmit={handleSubmit} className="mt-4 grid gap-4 md:grid-cols-2">
-              <input className="rounded-xl border border-slate-200 px-3 py-2" placeholder="Food name" value={form.foodName} onChange={(e) => setForm({ ...form, foodName: e.target.value })} required />
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder="Calories" value={form.calories} onChange={(e) => setForm({ ...form, calories: e.target.value })} required />
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder="Carbs (g)" value={form.carbs} onChange={(e) => setForm({ ...form, carbs: e.target.value })} required />
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder="Protein (g)" value={form.protein} onChange={(e) => setForm({ ...form, protein: e.target.value })} required />
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="0" placeholder="Fat (g)" value={form.fat} onChange={(e) => setForm({ ...form, fat: e.target.value })} required />
-              <input className="rounded-xl border border-slate-200 px-3 py-2" type="number" min="1" placeholder="Quantity" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required />
-              <button type="submit" className="md:col-span-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white">Save meal</button>
-            </form>
-          </div>
+        <div className="nutrition-primary-grid">
+          <GlassCard className="nutrition-panel">
+            <details ref={manualEntryRef} className="manual-entry" open={showManual}>
+              <summary onClick={(event) => { event.preventDefault(); setShowManual((current) => !current); }}>
+                <div><p className="section-eyebrow">{t('Alternative')}</p><h2>{t('Manual entry')}</h2></div>
+                <ChevronDown size={18} />
+              </summary>
+              <p className="nutrition-panel__intro">{t('Already know the nutrition values? Add a meal directly.')}</p>
+              <form onSubmit={handleSubmit} className="manual-entry__form">
+                <label className="nutrition-field nutrition-field--full">
+                  <span>{t('Food name')}</span>
+                  <input ref={manualFoodRef} type="text" placeholder={t('e.g. Homemade lentil soup')} value={form.foodName} onChange={(event) => setForm({ ...form, foodName: event.target.value })} required />
+                </label>
+                <label className="nutrition-field"><span>{t('Calories (kcal)')}</span><input type="number" min="0" step="0.1" value={form.calories} onChange={(event) => setForm({ ...form, calories: event.target.value })} required /></label>
+                <label className="nutrition-field"><span>{t('Carbs (g)')}</span><input type="number" min="0" step="0.1" value={form.carbs} onChange={(event) => setForm({ ...form, carbs: event.target.value })} required /></label>
+                <label className="nutrition-field"><span>{t('Protein (g)')}</span><input type="number" min="0" step="0.1" value={form.protein} onChange={(event) => setForm({ ...form, protein: event.target.value })} required /></label>
+                <label className="nutrition-field"><span>{t('Fat (g)')}</span><input type="number" min="0" step="0.1" value={form.fat} onChange={(event) => setForm({ ...form, fat: event.target.value })} required /></label>
+                <label className="nutrition-field"><span>{t('Quantity')}</span><input type="number" min="1" step="1" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} required /></label>
+                <button type="submit" className="primary-button manual-entry__submit">{t('Save meal · earn 8 XP')}</button>
+              </form>
+            </details>
+          </GlassCard>
 
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">Today’s totals</h2>
-                <p className="text-sm text-slate-500">A quick snapshot of your macros.</p>
-              </div>
-              <button onClick={handleInsights} className="rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white">Get AI Insights</button>
+          <section className="glass nutrition-panel">
+            <div className="nutrition-panel__heading">
+              <div><p className="section-eyebrow">{t('Today')}</p><h2>{t('Daily nutrition')}</h2></div>
+              <button type="button" className="secondary-button secondary-button--small" onClick={handleInsights} disabled={totals.calories === 0}>
+                <Sparkles size={15} /> {t('AI insights')}
+              </button>
             </div>
-            {loading ? (
-              <div className="mt-6 space-y-3">
-                {[1, 2, 3].map((idx) => <div key={idx} className="h-14 animate-pulse rounded-2xl bg-slate-100" />)}
-              </div>
-            ) : (
-              <div className="mt-6 grid gap-3">
-                {['calories', 'protein', 'carbs'].map((key) => {
-                  const max = key === 'calories' ? 2400 : 180;
-                  const value = totals[key] || 0;
-                  const percentage = Math.min(100, Math.round((value / max) * 100));
-                  return (
-                    <div key={key}>
-                      <div className="mb-1 flex items-center justify-between text-sm text-slate-600">
-                        <span className="capitalize">{key}</span>
-                        <span>{Math.round(value)} / {max}</span>
-                      </div>
-                      <div className="h-3 rounded-full bg-slate-100">
-                        <div className="h-3 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500" style={{ width: `${percentage}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-3xl bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-slate-900">Today’s meals</h2>
-            <div className="mt-4 space-y-3">
-              {loading ? (
-                [1, 2].map((idx) => <div key={idx} className="h-20 animate-pulse rounded-2xl bg-slate-100" />)
-              ) : (todayLog?.meals || []).length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">No meals logged yet today.</p>
-              ) : (
-                (todayLog?.meals || []).map((item, index) => (
-                  <div key={`${item.foodName}-${index}`} className="rounded-2xl border border-slate-200 p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-slate-900">{item.foodName}</p>
-                        <p className="text-sm text-slate-500">Qty {item.quantity}</p>
-                      </div>
-                      <p className="font-semibold text-blue-600">{item.calories} kcal</p>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-600">
-                      <span className="rounded-full bg-slate-100 px-3 py-1">Protein {item.protein}g</span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1">Carbs {item.carbs}g</span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1">Fat {item.fat}g</span>
-                    </div>
+            <p className="nutrition-panel__intro">{t('A live snapshot of your logged meals.')}</p>
+            {loading ? <div className="nutrition-skeletons"><Skeleton className="h-12 rounded-xl" /><Skeleton className="h-12 rounded-xl" /><Skeleton className="h-12 rounded-xl" /></div> : (
+              <div className="nutrition-daily-bars">
+                {[
+                  ['Calories', totals.calories, 2400, 'kcal'],
+                  ['Protein', totals.protein, 180, 'g'],
+                  ['Carbs', totals.carbs, 260, 'g'],
+                  ['Fat', totals.fat, 80, 'g']
+                ].map(([label, value, goal, unit]) => (
+                  <div className="nutrition-total-bar" key={label}>
+                    <div><span>{t(label)}</span><strong><AnimatedNumber value={value} decimals={0} /> / {goal} {unit}</strong></div>
+                    <div className="nutrition-total-bar__track"><span style={{ transform: `scaleX(${Math.min(1, value / goal)})` }} /></div>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            {insights && (
-              <div className="rounded-3xl bg-gradient-to-br from-emerald-600 to-blue-600 p-6 text-white shadow-sm">
-                <h3 className="text-lg font-semibold">AI insight</h3>
-                <div className="mt-3 space-y-2 text-sm">
-                  <p><span className="font-semibold">Calorie assessment:</span> {insights.calorieAssessment}</p>
-                  <p><span className="font-semibold">Balance:</span> {insights.proteinCarbFeedback}</p>
-                  <p><span className="font-semibold">Tomorrow:</span> {insights.suggestions?.join(', ')}</p>
-                  <p><span className="font-semibold">Tip:</span> {insights.motivationalTip}</p>
-                </div>
+                ))}
               </div>
             )}
+          </section>
+        </div>
 
-            <div className="rounded-3xl bg-white p-6 shadow-sm">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">Last 7 days</h3>
-                  <p className="mt-1 text-xs text-slate-500">Daily calories logged</p>
-                </div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">kcal</span>
-              </div>
-              <div className="mt-4 h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid stroke="#27304e" strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fill: '#8f98bb', fontSize: 11 }} axisLine={{ stroke: '#384263' }} tickLine={false} />
-                    <YAxis unit=" kcal" tick={{ fill: '#8f98bb', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <Tooltip formatter={(value) => [`${value} kcal`, 'Calories']} contentStyle={{ background: '#151b32', border: '1px solid #384263', borderRadius: 10 }} />
-                    <Bar dataKey="calories" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+        <div className="nutrition-secondary-grid">
+          <section className="glass nutrition-panel">
+            <div className="nutrition-panel__heading"><div><p className="section-eyebrow">{t('Food log')}</p><h2>{t('Today’s meals')}</h2></div><span className="nutrition-count">{todayLog?.meals?.length || 0} {t('entries')}</span></div>
+            <div className="nutrition-meal-list">
+              {loading ? <><Skeleton className="h-20 rounded-xl" /><Skeleton className="h-20 rounded-xl" /></> : (todayLog?.meals || []).length === 0 ? (
+                <p className="nutrition-empty">{t('Your first meal is a good place to start.')}</p>
+              ) : (todayLog.meals || []).map((item, index) => (
+                <article className="nutrition-meal-row" key={`${item.foodName}-${index}`}>
+                  <div className="nutrition-meal-row__top"><div><h3>{item.foodName}</h3><p>{t('Quantity')} · {item.quantity}</p></div><strong>{item.calories} <small>kcal</small></strong></div>
+                  <div className="nutrition-meal-row__macros"><span>{t('Protein')} {item.protein}g</span><span>{t('Carbs')} {item.carbs}g</span><span>{t('Fat')} {item.fat}g</span></div>
+                </article>
+              ))}
             </div>
+          </section>
+
+          <div className="nutrition-side-column">
+            {insights && (
+              <section className="glass nutrition-panel nutrition-insights">
+                <p className="section-eyebrow">{t('Personal insights')}</p><h2>{t('AI nutrition insight')}</h2>
+                <div className="nutrition-insights__body">
+                  <p><strong>{t('Calorie assessment')}</strong>{insights.calorieAssessment}</p>
+                  <p><strong>{t('Macro balance')}</strong>{insights.proteinCarbFeedback}</p>
+                  <p><strong>{t('Try tomorrow')}</strong>{insights.suggestions?.join(', ')}</p>
+                  <p><strong>{t('Keep going')}</strong>{insights.motivationalTip}</p>
+                </div>
+              </section>
+            )}
+            <GlassCard className="nutrition-panel nutrition-history-chart">
+              <div className="nutrition-panel__heading">
+                <div><p className="section-eyebrow">{t('Consistency')}</p><h2>{t('Last 7 days')}</h2></div>
+                <span className="nutrition-chart-total"><strong>{chartData.reduce((sum, entry) => sum + Number(entry.calories || 0), 0).toLocaleString(locale)}</strong><small>{t('kcal logged')}</small></span>
+              </div>
+              {loading ? <Skeleton className="mt-5 h-64 rounded-xl" /> : chartData.length ? (
+                <div className="nutrition-chart">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 10, right: 8, left: -15, bottom: 0 }} barCategoryGap="34%">
+                      <defs>
+                        <linearGradient id="nutritionBarFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--accent)" stopOpacity={1} />
+                          <stop offset="100%" stopColor="var(--accent-strong)" stopOpacity={0.72} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid stroke="var(--line)" strokeDasharray="4 6" vertical={false} />
+                      <XAxis dataKey="date" tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} dy={9} />
+                      <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} axisLine={false} tickLine={false} width={44} />
+                      <Tooltip
+                        cursor={{ fill: 'var(--mist)', radius: 8 }}
+                        formatter={(value) => [`${Number(value).toLocaleString(locale)} kcal`, t('Calories')]}
+                        contentStyle={{ background: 'var(--bg-panel-raised)', color: 'var(--text)', border: '1px solid var(--line)', borderRadius: 12, boxShadow: 'var(--elev-2)' }}
+                        labelStyle={{ color: 'var(--muted)', marginBottom: 4 }}
+                      />
+                      <Bar dataKey="calories" name={t('Calories')} fill="url(#nutritionBarFill)" radius={[7, 7, 3, 3]} maxBarSize={38} background={{ fill: 'var(--bg-panel-soft)', radius: 7 }} animationDuration={650} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : <p className="nutrition-empty">{t('Your calorie history will appear as you log meals.')}</p>}
+            </GlassCard>
           </div>
         </div>
+        <p className="nutrition-xp-note">{t('Logging a meal earns +8 XP · your total is ')}{userStats.xp} XP</p>
       </div>
     </div>
   );

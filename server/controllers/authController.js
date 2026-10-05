@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
+import { AccountActivity } from '../models/AccountActivity.js';
 
 /**
  * Generate JWT token
@@ -29,6 +30,11 @@ export const register = async (req, res) => {
     // Create new user
     const user = new User({ username, email, password });
     await user.save();
+    try {
+      await AccountActivity.create({ userId: user._id, type: 'account_created', summary: 'Account created' });
+    } catch (activityError) {
+      console.error('Failed to record account creation activity:', activityError);
+    }
 
     // Generate token
     const token = generateToken(user._id);
@@ -44,7 +50,8 @@ export const register = async (req, res) => {
         xp: user.xp,
         level: user.level,
         streak: user.streak,
-        title: user.title || 'Novice'
+        title: user.title || 'Novice',
+        language: user.language || 'en'
       }
     });
   } catch (error) {
@@ -76,6 +83,11 @@ export const login = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid password' });
     }
+    try {
+      await AccountActivity.create({ userId: user._id, type: 'sign_in', summary: 'Signed in successfully' });
+    } catch (activityError) {
+      console.error('Failed to record sign-in activity:', activityError);
+    }
 
     // Generate token
     const token = generateToken(user._id);
@@ -90,7 +102,8 @@ export const login = async (req, res) => {
         xp: user.xp,
         level: user.level,
         streak: user.streak,
-        title: user.title || 'Novice'
+        title: user.title || 'Novice',
+        language: user.language || 'en'
       }
     });
   } catch (error) {
@@ -119,7 +132,8 @@ export const getCurrentUser = async (req, res) => {
         streak: user.streak,
         title: user.title || 'Novice',
         totalTasks: user.totalTasks,
-        completedTasks: user.completedTasks
+        completedTasks: user.completedTasks,
+        language: user.language || 'en'
       }
     });
   } catch (error) {

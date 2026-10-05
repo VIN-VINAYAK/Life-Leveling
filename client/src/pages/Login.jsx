@@ -3,8 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { Flame, Swords } from 'lucide-react';
+import { Card3D } from '../components/ui/Card3D';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Login = () => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -27,7 +30,7 @@ export const Login = () => {
     setError('');
 
     if (!formData.email || !formData.password) {
-      setError('Email and password are required');
+      setError(t('Email and password are required'));
       return;
     }
 
@@ -37,7 +40,7 @@ export const Login = () => {
     if (result.success) {
       navigate('/dashboard');
     } else {
-      setError(result.error);
+      setError(t(result.error));
     }
     setLoading(false);
   };
@@ -45,10 +48,10 @@ export const Login = () => {
   return (
     <div className="auth-page min-h-screen flex items-center justify-center p-4">
       <div className="auth-theme-toggle"><ThemeToggle compact /></div>
-      <div className="auth-card w-full max-w-md">
+      <Card3D className="auth-card w-full max-w-md">
         <div className="auth-crest" aria-hidden="true"><Flame size={18} /><Swords size={18} /></div>
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">Life Leveling</h1>
-        <p className="text-center text-gray-600 mb-8">Welcome back</p>
+        <p className="text-center text-gray-600 mb-8">{t('Welcome back')}</p>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
@@ -58,7 +61,7 @@ export const Login = () => {
 
         <form onSubmit={handleSubmit} autoComplete="on">
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
+            <label className="block text-gray-700 text-sm font-bold mb-2">{t('Email')}</label>
             <input
               type="email"
               name="email"
@@ -66,12 +69,12 @@ export const Login = () => {
               value={formData.email}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-              placeholder="your@email.com"
+              placeholder={t('your@email.com')}
             />
           </div>
 
           <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
+            <label className="block text-gray-700 text-sm font-bold mb-2">{t('Password')}</label>
             <input
               type="password"
               name="password"
@@ -79,7 +82,7 @@ export const Login = () => {
               value={formData.password}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-              placeholder="••••••"
+              placeholder={t('••••••')}
             />
           </div>
 
@@ -88,17 +91,17 @@ export const Login = () => {
             disabled={loading}
             className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
           >
-            {loading ? 'Connecting...' : 'Login'}
+            {loading ? t('Connecting...') : t('Login')}
           </button>
         </form>
 
         <p className="text-center text-gray-600 mt-6">
-          Don't have an account?{' '}
+          {t("Don't have an account?")}{' '}
           <Link to="/register" className="text-blue-600 hover:underline font-bold">
-            Register
+            {t('Register')}
           </Link>
         </p>
-      </div>
+      </Card3D>
     </div>
   );
 };

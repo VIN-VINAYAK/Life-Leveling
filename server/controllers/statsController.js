@@ -51,8 +51,8 @@ export const getStats = async (req, res) => {
     const completedToday = habits.filter(h => h.history && h.history.some(d => startOfDay(d).getTime() === today.getTime())).length;
     const habitCompletionRate = activeHabitsCount === 0 ? 0 : Math.round((completedToday / activeHabitsCount) * 100);
 
-    // Streak history (last 14 days) - check if all active habits completed each day
-    const streakDays = 14;
+    // Provide a quarter of daily status so the calendar can navigate recent months.
+    const streakDays = 90;
     const streakHistory = [];
     for (let i = streakDays - 1; i >= 0; i--) {
       const day = new Date(now); day.setDate(now.getDate() - i); day.setHours(0,0,0,0);

@@ -75,8 +75,9 @@ export const nutritionAPI = {
   getToday: () => api.get('/nutrition/today'),
   getHistory: () => api.get('/nutrition/history'),
   logMeal: (data) => api.post('/nutrition/log', data),
+  logBatch: (data) => api.post('/nutrition/log-batch', data),
   getAiInsights: (data) => api.post('/nutrition/ai-insights', data),
-  analyzeFoodImage: (data) => api.post('/nutrition/analyze-image', data)
+  analyzeText: (data) => api.post('/nutrition/analyze-text', data)
 };
 
 // Fitness API
@@ -106,6 +107,14 @@ export const expenseAPI = {
 export const leaderboardAPI = {
   getGlobal: () => api.get('/leaderboard/global'),
   getRank: () => api.get('/leaderboard/rank')
+};
+
+// Account settings and security history
+export const settingsAPI = {
+  get: () => api.get('/settings'),
+  update: (data) => api.patch('/settings', data),
+  changePassword: (data) => api.post('/settings/password', data),
+  getActivity: () => api.get('/settings/activity')
 };
 
 // Summary API

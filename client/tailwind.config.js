@@ -21,8 +21,11 @@ export default {
         }
       },
       boxShadow: {
-        soft: '0 20px 45px -24px rgba(79,124,255,0.45)',
-        card: '0 12px 28px -18px rgba(15, 23, 42, 0.35)'
+        soft: '0 20px 45px -24px rgba(189,100,52,0.35)',
+        card: '0 12px 28px -18px rgba(15, 23, 42, 0.35)',
+        'elev-1': 'var(--elev-1)',
+        'elev-2': 'var(--elev-2)',
+        'elev-3': 'var(--elev-3)'
       },
       borderRadius: {
         xl2: '1.125rem',
