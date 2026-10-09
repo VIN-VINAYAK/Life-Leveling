@@ -7,23 +7,18 @@ const AchievementCard = ({ achievement, rewardXP, unlocked }) => {
   const { language, t } = useLanguage();
   const reduceMotion = useReducedMotion();
   return (
-    <div className="achievement-flip">
+    <div className="achievement-card-wrap">
       <motion.article
-        className={`achievement-flip__inner ${unlocked ? 'achievement-flip__inner--unlocked' : 'achievement-flip__inner--locked'}`}
-        whileHover={reduceMotion ? undefined : { rotateY: 180 }}
-        transition={{ type: 'spring', stiffness: 180, damping: 22 }}
+        className={`achievement-card ${unlocked ? 'achievement-card--unlocked' : 'achievement-card--locked'}`}
+        whileHover={reduceMotion ? undefined : { y: -3, scale: 1.01 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 24 }}
       >
-        <div className="achievement-flip__face achievement-flip__front">
+        <div className="achievement-card__content">
           <div className="flex items-start justify-between gap-3">
             <div><h3 className="font-bold text-white">{t(achievement.name)}</h3><p className="mt-1 text-sm text-slate-400">{t(achievement.description)}</p></div>
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ${unlocked ? 'bg-emerald-400/15 text-emerald-300' : 'bg-slate-800 text-slate-400'}`}>{unlocked ? `+${rewardXP} XP` : t('Locked')}</span>
           </div>
           <p className="mt-3 text-xs text-slate-500">{unlocked ? <>{t('Completed ')}{achievement.unlockedAt ? new Date(achievement.unlockedAt).toLocaleString(language === 'hi' ? 'hi-IN' : undefined) : t('recently')}</> : <>{t('Reward: +')}{rewardXP} XP</>}</p>
-        </div>
-        <div className="achievement-flip__face achievement-flip__back" aria-hidden="true">
-          <span>{unlocked ? t('MILESTONE REACHED') : t('YOUR NEXT MILESTONE')}</span>
-          <strong>{t(achievement.name)}</strong>
-          <p>{unlocked ? <>{`+${rewardXP}`}{t(' XP added to your journey.')}</> : t(achievement.description)}</p>
         </div>
       </motion.article>
     </div>

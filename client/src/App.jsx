@@ -25,6 +25,7 @@ const Expense = lazy(() => import('./pages/Expense.jsx').then((module) => ({ def
 const Leaderboard = lazy(() => import('./pages/Leaderboard.jsx').then((module) => ({ default: module.Leaderboard })));
 const Summary = lazy(() => import('./pages/Summary.jsx').then((module) => ({ default: module.Summary })));
 const Settings = lazy(() => import('./pages/Settings.jsx').then((module) => ({ default: module.Settings })));
+const PublicPlayer = lazy(() => import('./pages/PublicPlayer.jsx').then((module) => ({ default: module.PublicPlayer })));
 
 const ProtectedLayout = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -57,6 +58,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <PublicPage><Login /></PublicPage>} />
       <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <PublicPage><Register /></PublicPage>} />
+      <Route path="/player/:id" element={<PublicPage><PublicPlayer /></PublicPage>} />
       <Route element={<ProtectedLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/nutrition" element={<Nutrition />} />

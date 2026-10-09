@@ -514,6 +514,7 @@ button, a {
 .card-surface:hover {
   border-color: var(--line-bright);
   box-shadow: 0 22px 54px var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  transform: translateY(-2px);
 }
 
 .page-shell {
@@ -774,15 +775,51 @@ textarea:focus-visible {
 .settings-account-meta > div { display: grid; gap: 4px; }
 .settings-account-meta small { color: var(--muted); font-size: 0.58rem; font-weight: 800; letter-spacing: 0.13em; }
 .settings-account-meta strong { color: var(--text); font-size: 0.76rem; }
-.achievement-flip { min-height: 132px; perspective: 900px; }
-.achievement-flip__inner { position: relative; min-height: inherit; transform-style: preserve-3d; }
-.achievement-flip__face { position: absolute; inset: 0; display: flex; min-height: inherit; flex-direction: column; justify-content: center; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px; backface-visibility: hidden; }
-.achievement-flip__inner--unlocked .achievement-flip__front { border-color: rgba(142, 208, 164, 0.35); background: linear-gradient(140deg, rgba(142, 208, 164, 0.1), var(--bg-panel)); }
-.achievement-flip__inner--locked .achievement-flip__front { opacity: 0.78; background: linear-gradient(140deg, var(--bg-panel-raised), var(--bg-panel-soft)); }
-.achievement-flip__back { align-items: flex-start; gap: 8px; transform: rotateY(180deg); border-color: var(--line-bright); background: linear-gradient(140deg, var(--accent-soft), var(--bg-panel-raised)); }
-.achievement-flip__back > span { color: var(--accent); font-size: 0.63rem; font-weight: 800; letter-spacing: 0.14em; }
-.achievement-flip__back strong { color: var(--text); font-size: 1rem; }
-.achievement-flip__back p { color: var(--muted); font-size: 0.77rem; }
+.achievement-card {
+  position: relative;
+  min-height: 132px;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, var(--bg-panel-raised), var(--bg-panel));
+  box-shadow: var(--elev-1);
+  transition: border-color var(--dur-base), box-shadow var(--dur-base);
+}
+.achievement-card-wrap { animation: achievement-enter 360ms var(--ease-out) both; }
+.achievement-card::before {
+  position: absolute;
+  z-index: -1;
+  inset: -35%;
+  border-radius: 50%;
+  content: '';
+  opacity: 0;
+  background: radial-gradient(ellipse, rgba(230, 160, 71, 0.24), transparent 68%);
+  pointer-events: none;
+}
+.achievement-card--unlocked {
+  border-color: rgba(142, 208, 164, 0.4);
+  background: linear-gradient(140deg, rgba(142, 208, 164, 0.1), var(--bg-panel));
+}
+.achievement-card--unlocked::before { animation: achievement-glow 3.4s ease-in-out infinite alternate; }
+.achievement-card--locked { opacity: 0.84; }
+.achievement-card:hover { border-color: var(--line-bright); box-shadow: 0 12px 32px -18px var(--accent), var(--elev-1); }
+.achievement-card--locked:hover { opacity: 1; }
+.achievement-card--locked:hover::before { opacity: 0.55; }
+.achievement-card-wrap:nth-child(2) { animation-delay: 35ms; }
+.achievement-card-wrap:nth-child(3) { animation-delay: 70ms; }
+.achievement-card-wrap:nth-child(4) { animation-delay: 105ms; }
+.achievement-card-wrap:nth-child(5) { animation-delay: 140ms; }
+.achievement-card-wrap:nth-child(n+6) { animation-delay: 175ms; }
+.achievement-card__content { position: relative; z-index: 1; display: flex; min-height: inherit; flex-direction: column; justify-content: center; padding: 16px; }
+@keyframes achievement-glow {
+  from { opacity: 0.28; transform: translate3d(-3%, 0, 0) scale(0.96); }
+  to { opacity: 0.78; transform: translate3d(3%, 0, 0) scale(1.04); }
+}
+@keyframes achievement-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .notification-card { display: flex; align-items: center; gap: 14px; }
 
 .auth-page::before, .auth-page::after { animation: auth-orbit 14s ease-in-out infinite alternate; }
@@ -919,6 +956,8 @@ input:focus, select:focus, textarea:focus {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+  .achievement-card-wrap { animation: none; }
+  .achievement-card--unlocked::before { animation: none; opacity: 0.45; }
 }
 
 .glass {

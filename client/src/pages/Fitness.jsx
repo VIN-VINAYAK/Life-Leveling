@@ -31,6 +31,7 @@ export const Fitness = () => {
         fitnessGoal: profileRes.data.profile?.fitnessGoal || 'maintain',
         activityLevel: profileRes.data.profile?.activityLevel || 'moderate'
       });
+      setPlan(profileRes.data.profile?.cachedAiPlan?.plan || []);
       setTodayLog(todayRes.data.log);
       setHistory(historyRes.data.logs || []);
     } catch (error) {
@@ -76,7 +77,7 @@ export const Fitness = () => {
     try {
       const response = await fitnessAPI.generatePlan();
       setPlan(response.data.plan || []);
-      toast.success(t('A fresh AI workout plan is ready'));
+      toast.success(response.data.cached ? t('Showing your saved AI workout plan') : t('A fresh AI workout plan is ready'));
     } catch (error) {
       toast.error(error.response?.data?.message || t('Could not generate workout plan'));
     } finally {

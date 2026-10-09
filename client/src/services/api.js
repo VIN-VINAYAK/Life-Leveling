@@ -109,6 +109,11 @@ export const leaderboardAPI = {
   getRank: () => api.get('/leaderboard/rank')
 };
 
+// Public player cards
+export const playerAPI = {
+  getCard: (id) => api.get(`/players/${id}/card`)
+};
+
 // Account settings and security history
 export const settingsAPI = {
   get: () => api.get('/settings'),

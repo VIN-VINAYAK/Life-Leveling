@@ -6,11 +6,10 @@ export const PageTransition = ({ children }) => {
   return (
     <motion.div
       className="page-transition w-full"
-      initial={{ opacity: 0, y: reduceMotion ? 0 : 12, rotateX: reduceMotion ? 0 : -1.5, filter: reduceMotion ? 'none' : 'blur(3px)' }}
-      animate={{ opacity: 1, y: 0, rotateX: 0, filter: 'blur(0px)' }}
-      exit={{ opacity: 0, y: reduceMotion ? 0 : -6, rotateX: 0, filter: 'blur(1px)' }}
+      initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: reduceMotion ? 0 : -4 }}
       transition={{ duration: reduceMotion ? 0.12 : 0.3, ease: [0.22, 1, 0.36, 1] }}
-      style={{ transformOrigin: 'top center', backfaceVisibility: 'hidden' }}
     >
       {children}
     </motion.div>

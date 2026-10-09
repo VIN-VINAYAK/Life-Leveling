@@ -16,20 +16,23 @@ export const Reveal = ({ children, className = '', delay = 0, ...props }) => {
   );
 };
 
-export const Stagger = ({ children, className = '', ...props }) => (
-  <motion.div
-    className={className}
-    variants={{
-      hidden: {},
-      visible: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } }
-    }}
-    initial="hidden"
-    animate="visible"
-    {...props}
-  >
-    {children}
-  </motion.div>
-);
+export const Stagger = ({ children, className = '', ...props }) => {
+  const reduceMotion = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      variants={{
+        hidden: {},
+        visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.07, delayChildren: reduceMotion ? 0 : 0.04 } }
+      }}
+      initial="hidden"
+      animate="visible"
+      {...props}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 export const StaggerItem = ({ children, className = '', ...props }) => {
   const reduceMotion = useReducedMotion();

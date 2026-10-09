@@ -157,8 +157,8 @@ User profile: ${JSON.stringify({
 Recent logged workouts from the last 14 days: ${JSON.stringify(recentWorkouts)}
 Most recently generated plan to avoid repeating: ${JSON.stringify(previousPlan)}
 Use a noticeably different weekly split and exercise selection from the previous plan while still following the user's goal and recovery needs. Vary your programming approach for this request. Variety token: ${randomUUID()}`,
-        maxTokens: 1200,
-        temperature: 0.9
+        maxTokens: 2200,
+        temperature: 0.75
       });
 
       const planItems = Array.isArray(aiResponse.plan) ? aiResponse.plan : [];

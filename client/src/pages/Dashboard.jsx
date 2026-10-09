@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Share2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useXP } from '../context/XPContext';
 import { XPBar } from '../components/XPBar';
@@ -193,28 +194,39 @@ export const Dashboard = () => {
             <h1 className="mt-2 text-3xl font-bold text-white">{t('Good evening, ')}{user?.username || t('Player')} <span aria-hidden="true">👋</span></h1>
             <p className="mt-1 text-sm text-slate-400">{user?.title || t('Novice')} · {t('Keep building your momentum.')}</p>
           </div>
-          <div className={`relative overflow-hidden rounded-[30px] border-2 ${currentLevelBadge.ring} bg-[#070b14] px-4 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.3)]`}>
-            <div className="dashboard-level-glow absolute inset-0 opacity-95" />
-            <div className="absolute inset-x-3 top-2 h-7 rounded-full border border-white/20 bg-white/10" />
-            <div className="absolute left-1/2 top-2 h-14 w-[72%] -translate-x-1/2 rounded-full border border-white/15 bg-black/10" />
+          <div className="flex flex-col items-stretch gap-3 md:items-end">
+            {user?.id && (
+              <Link
+                to={`/player/${user.id}`}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-300/30 bg-violet-500/15 px-4 py-2.5 text-sm font-semibold text-violet-100 transition hover:bg-violet-500/25"
+              >
+                <Share2 size={17} aria-hidden="true" />
+                {t('Share your player card')}
+              </Link>
+            )}
+            <div className={`relative overflow-hidden rounded-[30px] border-2 ${currentLevelBadge.ring} bg-[#070b14] px-4 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.3)]`}>
+              <div className="dashboard-level-glow absolute inset-0 opacity-95" />
+              <div className="absolute inset-x-3 top-2 h-7 rounded-full border border-white/20 bg-white/10" />
+              <div className="absolute left-1/2 top-2 h-14 w-[72%] -translate-x-1/2 rounded-full border border-white/15 bg-black/10" />
 
-            <div className="relative z-10 flex flex-col items-center">
-              <div className="mb-2 flex h-[110px] w-[110px] items-center justify-center rounded-full border-[6px] border-[#d4d7dd] bg-gradient-to-b from-[#f4f7ff] via-[#c8ced8] to-[#8d98a4] shadow-[inset_0_6px_12px_rgba(255,255,255,0.8),0_0_18px_rgba(255,255,255,0.45)]">
-                <div className="relative flex h-[82px] w-[82px] items-center justify-center rounded-full border-[4px] border-[#606a78] bg-gradient-to-b from-[#0d1117] via-[#1a1f2a] to-[#070b14]">
-                  <div className="dashboard-level-emblem absolute inset-2 rounded-full" style={{ clipPath: 'polygon(50% 0%, 86% 18%, 100% 50%, 82% 84%, 50% 100%, 18% 84%, 0% 50%, 16% 18%)' }} />
-                  <div className="absolute inset-[10px] rounded-full border border-white/30 bg-black/20" />
-                  <div className="absolute inset-x-4 top-3 h-5 rounded-full border border-white/20 bg-white/15" />
-                  <div className="absolute h-10 w-10 rounded-full border-2 border-white/40 bg-black/25" />
-                  <div className="relative text-[28px] font-black tracking-[-0.08em] text-white">{userStats.level}</div>
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="mb-2 flex h-[110px] w-[110px] items-center justify-center rounded-full border-[6px] border-[#d4d7dd] bg-gradient-to-b from-[#f4f7ff] via-[#c8ced8] to-[#8d98a4] shadow-[inset_0_6px_12px_rgba(255,255,255,0.8),0_0_18px_rgba(255,255,255,0.45)]">
+                  <div className="relative flex h-[82px] w-[82px] items-center justify-center rounded-full border-[4px] border-[#606a78] bg-gradient-to-b from-[#0d1117] via-[#1a1f2a] to-[#070b14]">
+                    <div className="dashboard-level-emblem absolute inset-2 rounded-full" style={{ clipPath: 'polygon(50% 0%, 86% 18%, 100% 50%, 82% 84%, 50% 100%, 18% 84%, 0% 50%, 16% 18%)' }} />
+                    <div className="absolute inset-[10px] rounded-full border border-white/30 bg-black/20" />
+                    <div className="absolute inset-x-4 top-3 h-5 rounded-full border border-white/20 bg-white/15" />
+                    <div className="absolute h-10 w-10 rounded-full border-2 border-white/40 bg-black/25" />
+                    <div className="relative text-[28px] font-black tracking-[-0.08em] text-white">{userStats.level}</div>
+                  </div>
                 </div>
-              </div>
 
-              <div className={`inline-flex items-center rounded-full border border-white/30 bg-black/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.26em] ${currentLevelBadge.text}`}>
-                {t(currentLevelBadge.badgeText)}
+                <div className={`inline-flex items-center rounded-full border border-white/30 bg-black/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.26em] ${currentLevelBadge.text}`}>
+                  {t(currentLevelBadge.badgeText)}
+                </div>
+                <p className={`mt-2 text-[9px] font-bold uppercase tracking-[0.24em] ${currentLevelBadge.levelText}`}>
+                  {t('Current Level')}
+                </p>
               </div>
-              <p className={`mt-2 text-[9px] font-bold uppercase tracking-[0.24em] ${currentLevelBadge.levelText}`}>
-                {t('Current Level')}
-              </p>
             </div>
           </div>
         </div>

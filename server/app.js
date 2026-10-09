@@ -16,6 +16,7 @@ import expenseRoutes from './routes/expenseRoutes.js';
 import leaderboardRoutes from './routes/leaderboardRoutes.js';
 import summaryRoutes from './routes/summaryRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import playerRoutes from './routes/playerRoutes.js';
 
 dotenv.config();
 
@@ -56,5 +57,6 @@ app.use('/api/expense', expenseRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/summary', summaryRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/players', playerRoutes);
 
 export default app;
