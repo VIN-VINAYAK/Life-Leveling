@@ -1,0 +1,9 @@
+{
+  "appId": "com.lifeleveling.app",
+  "appName": "Life Leveling",
+  "webDir": "dist",
+  "backgroundColor": "#0a1110",
+  "server": {
+    "androidScheme": "https"
+  }
+}

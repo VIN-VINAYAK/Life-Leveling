@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import { Activity, Clock3, Globe2, KeyRound, ShieldCheck, UserRound } from 'lucide-react';
+import { Activity, Clock3, Globe2, KeyRound, ShieldCheck, Trash2, UserRound } from 'lucide-react';
 import { settingsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -17,13 +18,16 @@ const activityLabels = {
 const changedFieldLabels = { username: 'Username', email: 'Email address', language: 'App language' };
 
 export const Settings = () => {
-  const { fetchCurrentUser } = useAuth();
+  const { fetchCurrentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
   const [settings, setSettings] = useState({ username: '', email: '', language: 'en', createdAt: null });
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
 
   const refreshActivity = async () => {
@@ -91,6 +95,23 @@ export const Settings = () => {
     }
   };
 
+  const deleteAccount = async (event) => {
+    event.preventDefault();
+    if (!window.confirm(t('This permanently deletes your account and all associated data. This cannot be undone.'))) return;
+
+    setDeletingAccount(true);
+    try {
+      await settingsAPI.deleteAccount(deletePassword);
+      window.alert(t('Your account has been deleted.'));
+      logout();
+      navigate('/register', { replace: true });
+    } catch (error) {
+      toast.error(t(error.response?.data?.message || 'Could not delete your account.'));
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   if (loading) return <PageSkeleton />;
 
   return (
@@ -146,6 +167,22 @@ export const Settings = () => {
               <button className="secondary-button settings-submit" type="submit" disabled={savingPassword}>
                 {savingPassword ? t('Updating…') : t('Update password')}
               </button>
+            </form>
+          </GlassCard>
+
+          <GlassCard className="settings-card settings-delete-card">
+            <div className="settings-card-heading">
+              <span><Trash2 size={18} /></span>
+              <div><h2>{t('Delete account')}</h2><p>{t('Permanently remove your account and personal data.')}</p></div>
+            </div>
+            <form className="settings-form" onSubmit={deleteAccount}>
+              <label>{t('Confirm your password')}
+                <input type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} autoComplete="current-password" required />
+              </label>
+              <button className="danger-button settings-submit" type="submit" disabled={deletingAccount}>
+                {deletingAccount ? t('Deleting…') : t('Delete my account')}
+              </button>
+              <p className="settings-delete-warning">{t('This action is permanent and cannot be undone.')}</p>
             </form>
           </GlassCard>
         </div>

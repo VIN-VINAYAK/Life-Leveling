@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : '');
+
+if (!API_BASE_URL || (!import.meta.env.DEV && (!API_BASE_URL.startsWith('https://') || /(localhost|127\.0\.0\.1|your-domain|\.example\b)/i.test(API_BASE_URL)))) {
+  throw new Error('Set VITE_API_URL to the deployed HTTPS API URL before releasing the app.');
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -119,6 +123,7 @@ export const settingsAPI = {
   get: () => api.get('/settings'),
   update: (data) => api.patch('/settings', data),
   changePassword: (data) => api.post('/settings/password', data),
+  deleteAccount: (password) => api.delete('/settings/account', { data: { password } }),
   getActivity: () => api.get('/settings/activity')
 };
 

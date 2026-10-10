@@ -1,6 +1,14 @@
 export const translations = {
   en: {},
   hi: {
+    'Delete account': 'खाता हटाएँ',
+    'Permanently remove your account and personal data.': 'अपना खाता और निजी डेटा स्थायी रूप से हटाएँ।',
+    'Confirm your password': 'अपने पासवर्ड की पुष्टि करें',
+    'Delete my account': 'मेरा खाता हटाएँ',
+    'Deleting…': 'हटाया जा रहा है…',
+    'This action is permanent and cannot be undone.': 'यह कार्रवाई स्थायी है और इसे पूर्ववत नहीं किया जा सकता।',
+    'This permanently deletes your account and all associated data. This cannot be undone.': 'इससे आपका खाता और उससे जुड़ा सारा डेटा स्थायी रूप से हट जाएगा। इसे पूर्ववत नहीं किया जा सकता।',
+    'Your account has been deleted.': 'आपका खाता हटा दिया गया है।',
     'Loading...': 'लोड हो रहा है...',
     'Daily actions': 'रोज़मर्रा के काम',
     'Tasks': 'कार्य',

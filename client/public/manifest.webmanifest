@@ -1,0 +1,13 @@
+{
+  "name": "Life Leveling",
+  "short_name": "Life Leveling",
+  "description": "Build better habits, complete goals, and level up your life.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0a1110",
+  "theme_color": "#0a1110",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

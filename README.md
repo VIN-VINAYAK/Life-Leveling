@@ -11,6 +11,10 @@ A gamified personal development platform where users level up through completing
 - **Social Features**: Compete with friends, join challenges
 - **Customizable Goals**: Personalize your leveling journey
 
+## Mobile app
+
+The client includes Capacitor projects for Android and iOS. See [the mobile release guide](docs/MOBILE_RELEASE.md) for API setup, device builds, signing, and store submission requirements.
+
 ## Phase 1: Core Prototype
 - Login/Register
 - Dashboard

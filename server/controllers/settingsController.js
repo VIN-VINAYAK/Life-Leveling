@@ -1,4 +1,14 @@
 import { AccountActivity } from '../models/AccountActivity.js';
+import { Achievement } from '../models/Achievement.js';
+import { ExpenseLog } from '../models/ExpenseLog.js';
+import { FitnessLog } from '../models/FitnessLog.js';
+import { FitnessProfile } from '../models/FitnessProfile.js';
+import { Habit } from '../models/Habit.js';
+import { Meal } from '../models/Meal.js';
+import { Notification } from '../models/Notification.js';
+import { NutritionLog } from '../models/NutritionLog.js';
+import { Task } from '../models/Task.js';
+import { ThingsList } from '../models/ThingsList.js';
 import { User } from '../models/User.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -104,6 +114,42 @@ export const changePassword = async (req, res) => {
   } catch (error) {
     console.error('Change password failed:', error);
     return res.status(500).json({ message: 'Could not change password' });
+  }
+};
+
+export const deleteAccount = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (typeof password !== 'string' || !password) {
+      return res.status(400).json({ message: 'Enter your password to delete your account' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!(await user.comparePassword(password))) {
+      return res.status(401).json({ message: 'Password is incorrect' });
+    }
+
+    const userId = user._id;
+    await Promise.all([
+      AccountActivity.deleteMany({ userId }),
+      Achievement.deleteMany({ userId }),
+      ExpenseLog.deleteMany({ userId }),
+      FitnessLog.deleteMany({ userId }),
+      FitnessProfile.deleteMany({ userId }),
+      Habit.deleteMany({ userId }),
+      Meal.deleteMany({ userId }),
+      Notification.deleteMany({ userId }),
+      NutritionLog.deleteMany({ userId }),
+      Task.deleteMany({ userId }),
+      ThingsList.deleteMany({ userId })
+    ]);
+    await User.deleteOne({ _id: userId });
+
+    return res.json({ message: 'Your account and associated data have been deleted' });
+  } catch (error) {
+    console.error('Delete account failed:', error);
+    return res.status(500).json({ message: 'Could not delete your account. Please try again.' });
   }
 };
 
